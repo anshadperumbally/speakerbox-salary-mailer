@@ -52,9 +52,9 @@ async function fetchEmployees() {
 }
 
 function calcNet(emp) {
-  const gross = parseFloat(emp.gross || 0) || (parseFloat(emp.earned || 0) || ((parseFloat(emp.basic || 0) + parseFloat(emp.ot || 0) + parseFloat(emp.bonus || 0))));
+  const earned = parseFloat(emp.basic || 0) + parseFloat(emp.ot || 0) + parseFloat(emp.bonus || 0);
   const deductions = parseFloat(emp.attendanceCuts || 0) + parseFloat(emp.leaveCut || 0) + parseFloat(emp.advance || 0);
-  return parseFloat(emp.net || 0) || (gross - deductions);
+  return earned - deductions;
 }
 
 function formatINR(n) {

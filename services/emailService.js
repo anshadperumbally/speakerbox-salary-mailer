@@ -15,17 +15,23 @@ const fmt = (n) => {
 
 // ─── Calculate derived fields ─────────────────────────────────────
 const calcPayroll = (emp) => {
-  const gross = parseFloat(emp.gross || 0) ||
-    (parseFloat(emp.earned || 0) ||
-    ((parseFloat(emp.basic || 0) + parseFloat(emp.ot || 0) + parseFloat(emp.bonus || 0))));
+  // 1. Earned Salary = Basic + OT + Bonus
+  const earned = parseFloat(emp.basic || 0) + 
+                 parseFloat(emp.ot || 0) + 
+                 parseFloat(emp.bonus || 0);
 
+  // 2. Total Deduction = Attendance Cuts + Leave Cut + Advance Salary
   const totalDeductions = parseFloat(emp.attendanceCuts || 0) +
                           parseFloat(emp.leaveCut || 0) +
                           parseFloat(emp.advance || 0);
 
-  const net = parseFloat(emp.net || 0) || (gross - totalDeductions);
+  // 3. Gross Salary = Earned Salary - Deduction
+  const gross = earned - totalDeductions;
 
-  return { gross, totalDeductions, net };
+  // 4. Net Salary = Gross Salary
+  const net = gross;
+
+  return { earned, gross, totalDeductions, net };
 };
 
 // ─── Nodemailer transporter ───────────────────────────────────────
@@ -198,12 +204,12 @@ const generatePDF = (emp, month, year) => {
 
     doc.moveTo(M, y-4).lineTo(M + CW, y-4).strokeColor('#cccccc').lineWidth(0.5).stroke();
 
-    drawOfficeRow('Earned Salary', emp.earned || gross, 'Total Deduction', totalDeductions, y, false, true); y += 20;
+    drawOfficeRow('Earned Salary', earned, 'Total Deduction', totalDeductions, y, false, true); y += 20;
 
     doc.moveTo(M, y-2).lineTo(M + CW, y-2).strokeColor('#cccccc').lineWidth(0.5).stroke();
 
     doc.font('Helvetica').fontSize(10).fillColor('#000000').text('Gross Salary', M, y);
-    doc.font('Helvetica-Bold').fillColor('#000000').text(': ' + parseFloat(emp.gross || gross).toFixed(2), M + 450, y, {width: 60, align: 'right'});
+    doc.font('Helvetica-Bold').fillColor('#000000').text(': ' + parseFloat(gross).toFixed(2), M + 450, y, {width: 60, align: 'right'});
     
     y += 10;
     doc.moveTo(M, y+5).lineTo(M + CW, y+5).strokeColor('#cccccc').dash(1, {space:1}).lineWidth(0.5).stroke();
@@ -239,7 +245,7 @@ const generatePDF = (emp, month, year) => {
 
 // ─── Template renderer ────────────────────────────────────────────
 const renderTemplate = (template, emp, month, year) => {
-  const { gross, totalDeductions, net } = calcPayroll(emp);
+  const { earned, gross, totalDeductions, net } = calcPayroll(emp);
   const slipMonth = month || emp.month || '';
   const slipYear  = year  || emp.year  || '';
   return template
@@ -256,7 +262,7 @@ const renderTemplate = (template, emp, month, year) => {
     .replace(/{{stipend}}/g,     fmt(emp.stipend))
     .replace(/{{ta}}/g,          fmt(emp.ta))
     .replace(/{{gross}}/g,       fmt(gross))
-    .replace(/{{earned}}/g,      fmt(emp.earned || gross))
+    .replace(/{{earned}}/g,      fmt(earned))
     .replace(/{{advance}}/g,     fmt(emp.advance))
     .replace(/{{deductions}}/g,  fmt(totalDeductions))
     .replace(/{{netPay}}/g,      fmt(net))
