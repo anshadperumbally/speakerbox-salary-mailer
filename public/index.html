@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="description" content="Bulk salary slip mail platform for HR teams – manage employees, generate PDFs, and send personalized salary slips in bulk."/>
+  <title>Speakerbox – Salary Slip Mailer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700;900&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/css/style.css"/>
+</head>
+<body>
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <div style="display:flex; flex-direction:column; gap:6px; padding: 4px 0;">
+        <img src="/logoWhite_w9b4xl.svg" alt="Speakerbox Logo" style="height: 34px; object-fit: contain; object-position: left;">
+        <div class="brand-sub" style="font-size:11px; color:#6B7280; letter-spacing:0.04em; text-transform:uppercase; font-weight:600;">Salary Slip Mailer</div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="#" class="nav-item active" data-page="dashboard" id="nav-dashboard">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Dashboard
+      </a>
+      <a href="#" class="nav-item" data-page="employees" id="nav-employees">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Employees
+      </a>
+      <a href="#" class="nav-item" data-page="compose" id="nav-compose">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        Send Salary Slips
+      </a>
+      <a href="#" class="nav-item" data-page="logs" id="nav-logs">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        Email Logs
+      </a>
+      <a href="#" class="nav-item" data-page="settings" id="nav-settings">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Settings
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-version">v1.0.0</div>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content" id="main-content">
+    <!-- Page: Dashboard -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Dashboard</h1>
+          <p class="page-subtitle">Welcome back — here's your payroll overview</p>
+        </div>
+        <button class="btn btn-primary" onclick="navigateTo('compose')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          Send Slips
+        </button>
+      </div>
+      <div class="stats-grid" id="stats-grid"></div>
+      <div class="dashboard-grid">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Recent Activity</h3>
+          </div>
+          <div id="recent-activity"></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Department Breakdown</h3>
+          </div>
+          <div id="dept-breakdown"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Page: Employees -->
+    <div class="page" id="page-employees">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Employees</h1>
+          <p class="page-subtitle">Manage your employee records</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-outline" onclick="triggerCSVImport()" id="import-csv-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Import CSV
+          </button>
+          <button class="btn btn-outline" onclick="downloadSampleCSV()" title="Download sample CSV template">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Sample CSV
+          </button>
+          <input type="file" id="csv-file-input" accept=".csv" style="display:none" onchange="importCSV(this)"/>
+          <button class="btn btn-primary" onclick="openEmployeeModal()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Employee
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="table-toolbar">
+          <input type="text" class="search-input" id="emp-search" placeholder="Search by name, ID, department…" oninput="filterEmployees()"/>
+          <select class="select-input" id="dept-filter" onchange="filterEmployees()">
+            <option value="">All Departments</option>
+          </select>
+        </div>
+        <div class="table-wrapper">
+          <table id="employees-table">
+            <thead>
+              <tr>
+                <th>Emp ID</th>
+                <th>Name</th>
+                <th>Department</th>
+                <th>Position</th>
+                <th>Net Pay</th>
+                <th>Email</th>
+                <th>Period</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="employees-tbody"></tbody>
+          </table>
+        </div>
+        <div id="emp-empty" class="empty-state" style="display:none">
+          <div class="empty-icon">👥</div>
+          <h3>No employees found</h3>
+          <p>Add employees manually or import a CSV file</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Page: Compose -->
+    <div class="page" id="page-compose">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Send Salary Slips</h1>
+          <p class="page-subtitle">Compose and send bulk salary slip emails</p>
+        </div>
+      </div>
+      <div class="compose-grid">
+        <div class="compose-left">
+          <!-- Recipients -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Recipients</h3>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Send To</label>
+              <div class="radio-group">
+                <label class="radio-item">
+                  <input type="radio" name="sendTarget" value="all" checked onchange="updateRecipients(this)"/> All Employees
+                </label>
+                <label class="radio-item">
+                  <input type="radio" name="sendTarget" value="department" onchange="updateRecipients(this)"/> By Department
+                </label>
+                <label class="radio-item">
+                  <input type="radio" name="sendTarget" value="custom" onchange="updateRecipients(this)"/> Custom Selection
+                </label>
+              </div>
+            </div>
+            <div id="dept-selector" style="display:none">
+              <select class="select-input" id="compose-dept">
+                <option value="all">All Departments</option>
+              </select>
+            </div>
+            <div id="custom-selector" style="display:none">
+              <div class="employee-checklist" id="employee-checklist"></div>
+            </div>
+            <div class="recipients-summary" id="recipients-summary"></div>
+          </div>
+
+          <!-- Salary Period -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Salary Period</h3>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Month</label>
+                <select class="select-input" id="salary-month">
+                  <option value="January">January</option><option value="February">February</option>
+                  <option value="March">March</option><option value="April">April</option>
+                  <option value="May">May</option><option value="June">June</option>
+                  <option value="July">July</option><option value="August">August</option>
+                  <option value="September">September</option><option value="October">October</option>
+                  <option value="November">November</option><option value="December">December</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Year</label>
+                <select class="select-input" id="salary-year"></select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="compose-right">
+          <!-- Email Template -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Email Template</h3>
+              <span class="badge">Placeholders: {{name}}, {{id}}, {{netPay}}, {{month}}, {{year}}</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Subject</label>
+              <input type="text" class="form-control" id="email-subject" value="Salary Slip for {{month}} {{year}}"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email Body</label>
+              <textarea class="form-control" id="email-body" rows="12">Dear {{name}},
+
+Please find attached your salary slip for the month of {{month}}. A summary is provided below for your reference:
+
+Total Earned Salary: {{earned}}
+
+Total Deductions: {{deductions}}
+
+Net Amount: {{net}}
+
+
+
+Best regards,
+
+Anshad
+Accountant
+Speakerbox Media LLP
+https://hello.speakerbox.agency/anshad</textarea>
+            </div>
+          </div>
+
+          <!-- Send Button -->
+          <div class="card send-card">
+            <div class="send-summary" id="send-summary-text">Ready to send to all employees</div>
+            <button class="btn btn-send" id="send-btn" onclick="sendEmails()">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              Send Salary Slips
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Page: Logs -->
+    <div class="page" id="page-logs">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Email Logs</h1>
+          <p class="page-subtitle">History of all sent salary slip emails</p>
+        </div>
+        <button class="btn btn-outline" onclick="loadLogs()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          Refresh
+        </button>
+      </div>
+      <div id="logs-container"></div>
+    </div>
+
+    <!-- Page: Settings -->
+    <div class="page" id="page-settings">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Settings</h1>
+          <p class="page-subtitle">Configure SMTP and company details</p>
+        </div>
+      </div>
+      <div class="settings-grid">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+              Company Details
+            </h3>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Company Name</label>
+            <input type="text" class="form-control" id="company-name"/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Company Address</label>
+            <textarea class="form-control" id="company-address" rows="2"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Company Email</label>
+            <input type="email" class="form-control" id="company-email"/>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+              SMTP Configuration
+            </h3>
+          </div>
+          <div class="smtp-presets">
+            <span class="preset-label">Quick Setup:</span>
+            <button class="btn-preset" onclick="applyPreset('cpanel')">🌐 cPanel / Hosting</button>
+            <button class="btn-preset" onclick="applyPreset('gmail')">📧 Gmail Workspace</button>
+            <button class="btn-preset" onclick="applyPreset('zoho')">☁️ Zoho Mail</button>
+            <button class="btn-preset" onclick="applyPreset('outlook')">🪟 Outlook / Office 365</button>
+          </div>
+          <div class="smtp-info">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            Enter your email password below. For Gmail with 2FA, use an <strong>App Password</strong> (Google Account → Security → App Passwords).
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">SMTP Host</label>
+              <input type="text" class="form-control" id="smtp-host" placeholder="smtp.gmail.com"/>
+            </div>
+            <div class="form-group" style="max-width:100px">
+              <label class="form-label">Port</label>
+              <input type="number" class="form-control" id="smtp-port" placeholder="587"/>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Username / Email</label>
+              <input type="text" class="form-control" id="smtp-user" placeholder="you@gmail.com"/>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email Password <span style="color:var(--red);font-size:11px">★ Required to send</span></label>
+              <div class="password-wrap">
+                <input type="password" class="form-control" id="smtp-pass" placeholder="Enter your email account password"/>
+                <button class="btn-toggle-pass" onclick="togglePassVisibility()" title="Show/hide password">👁</button>
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">From Name</label>
+            <input type="text" class="form-control" id="smtp-fromName" placeholder="HR Department"/>
+          </div>
+          <div class="form-check">
+            <input type="checkbox" id="smtp-secure"/>
+            <label for="smtp-secure">Use SSL (port 465)</label>
+          </div>
+          <div class="settings-actions">
+            <button class="btn btn-outline" id="test-smtp-btn" onclick="testSMTP()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.60 3.35 2 2 0 0 1 3.55 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.69a16 16 0 0 0 6 6l.91-.91a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21.73 16.92z"/></svg>
+              Test Connection
+            </button>
+            <button class="btn btn-primary" onclick="saveSettings()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              Save Settings
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Employee Modal -->
+  <div class="modal-overlay" id="employee-modal" style="display:none">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="modal-title">Add Employee</h2>
+        <button class="modal-close" onclick="closeEmployeeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="emp-edit-id"/>
+        <div class="form-section-title">Personal Information</div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Employee ID *</label><input type="text" class="form-control" id="emp-id" placeholder="EMP001"/></div>
+          <div class="form-group"><label class="form-label">Full Name *</label><input type="text" class="form-control" id="emp-name" placeholder="John Doe"/></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Email *</label><input type="email" class="form-control" id="emp-email" placeholder="john@company.com"/></div>
+          <div class="form-group"><label class="form-label">Joining Date</label><input type="date" class="form-control" id="emp-joining"/></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Department</label><input type="text" class="form-control" id="emp-dept" placeholder="Engineering"/></div>
+          <div class="form-group"><label class="form-label">Position</label><input type="text" class="form-control" id="emp-pos" placeholder="Software Engineer"/></div>
+        </div>
+        <div class="form-section-title">Earnings (₹)</div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Basic Salary</label><input type="number" class="form-control" id="emp-basic" placeholder="0"/></div>
+          <div class="form-group"><label class="form-label">HRA</label><input type="number" class="form-control" id="emp-hra" placeholder="0"/></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Dearness Allowance</label><input type="number" class="form-control" id="emp-da" placeholder="0"/></div>
+          <div class="form-group"><label class="form-label">Conveyance</label><input type="number" class="form-control" id="emp-conv" placeholder="0"/></div>
+        </div>
+        <div class="form-group"><label class="form-label">Medical Allowance</label><input type="number" class="form-control" id="emp-med" placeholder="0"/></div>
+        <div class="form-section-title">Deductions (₹)</div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">PF</label><input type="number" class="form-control" id="emp-pf" placeholder="0"/></div>
+          <div class="form-group"><label class="form-label">TDS</label><input type="number" class="form-control" id="emp-tds" placeholder="0"/></div>
+        </div>
+        <div class="form-group"><label class="form-label">Other Deductions</label><input type="number" class="form-control" id="emp-other" placeholder="0"/></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closeEmployeeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveEmployee()">Save Employee</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container"></div>
+
+  <!-- Send Progress Overlay -->
+  <div class="modal-overlay" id="send-overlay" style="display:none">
+    <div class="progress-modal">
+      <div class="progress-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </div>
+      <h3 id="progress-title">Sending Salary Slips…</h3>
+      <p id="progress-text">Please wait while emails are being sent</p>
+      <div class="progress-bar-wrap"><div class="progress-bar" id="progress-bar"></div></div>
+      <div id="progress-count" class="progress-count">0 / 0</div>
+    </div>
+  </div>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>

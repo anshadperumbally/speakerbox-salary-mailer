@@ -1,0 +1,245 @@
+[
+  {
+    "batchId": "1776514403944",
+    "timestamp": "2026-04-18T12:13:30.493Z",
+    "month": "April",
+    "year": "2026",
+    "total": 1,
+    "sent": 1,
+    "failed": 0,
+    "results": [
+      {
+        "id": "53",
+        "name": "Anshad P",
+        "email": "anshadperumbally@gmail.com",
+        "status": "sent"
+      }
+    ]
+  },
+  {
+    "batchId": "1776513860958",
+    "timestamp": "2026-04-18T12:04:28.030Z",
+    "month": "March",
+    "year": "2026",
+    "total": 1,
+    "sent": 1,
+    "failed": 0,
+    "results": [
+      {
+        "id": "53",
+        "name": "Anshad P",
+        "email": "anshadperumbally@gmail.com",
+        "status": "sent"
+      }
+    ]
+  },
+  {
+    "batchId": "1776513424140",
+    "timestamp": "2026-04-18T11:57:21.349Z",
+    "month": "April",
+    "year": "2026",
+    "total": 3,
+    "sent": 3,
+    "failed": 0,
+    "results": [
+      {
+        "id": "54",
+        "name": "Anshad P",
+        "email": "anshadperumbally@gmail.com",
+        "status": "sent"
+      },
+      {
+        "id": "34",
+        "name": "Amal Mohammed",
+        "email": "amalmohammedc@gmail.com",
+        "status": "sent"
+      },
+      {
+        "id": "53",
+        "name": "Anshad P",
+        "email": "anshadperumbally@gmail.com",
+        "status": "sent"
+      }
+    ]
+  },
+  {
+    "batchId": "1776504519662",
+    "timestamp": "2026-04-18T09:28:44.113Z",
+    "month": "April",
+    "year": "2026",
+    "total": 1,
+    "sent": 1,
+    "failed": 0,
+    "results": [
+      {
+        "id": "54",
+        "name": "Anshad P",
+        "email": "anshadperumbally@gmail.com",
+        "status": "sent"
+      }
+    ]
+  },
+  {
+    "batchId": "1776504432407",
+    "timestamp": "2026-04-18T09:27:16.382Z",
+    "month": "April",
+    "year": "2026",
+    "total": 1,
+    "sent": 1,
+    "failed": 0,
+    "results": [
+      {
+        "id": "54",
+        "name": "Anshad P",
+        "email": "anshadperumbally@gmail.com",
+        "status": "sent"
+      }
+    ]
+  },
+  {
+    "batchId": "1776504198613",
+    "timestamp": "2026-04-18T09:23:22.903Z",
+    "month": "April",
+    "year": "2026",
+    "total": 1,
+    "sent": 1,
+    "failed": 0,
+    "results": [
+      {
+        "id": "54",
+        "name": "Anshad P",
+        "email": "anshadperumbally@gmail.com",
+        "status": "sent"
+      }
+    ]
+  },
+  {
+    "batchId": "1776503760886",
+    "timestamp": "2026-04-18T09:16:01.010Z",
+    "month": "April",
+    "year": "2026",
+    "total": 1,
+    "sent": 0,
+    "failed": 1,
+    "results": [
+      {
+        "id": "54",
+        "name": "Anshad P",
+        "email": "anshadperumbally@gmail.com",
+        "status": "failed",
+        "error": "getaddrinfo ENOTFOUND mail.speakerbox.in"
+      }
+    ]
+  },
+  {
+    "batchId": "1776503641387",
+    "timestamp": "2026-04-18T09:14:01.626Z",
+    "month": "April",
+    "year": "2026",
+    "total": 1,
+    "sent": 0,
+    "failed": 1,
+    "results": [
+      {
+        "id": "54",
+        "name": "Anshad P",
+        "email": "anshadperumbally@gmail.com",
+        "status": "failed",
+        "error": "getaddrinfo ENOTFOUND mail.speakerbox.in"
+      }
+    ]
+  },
+  {
+    "batchId": "1776503610310",
+    "timestamp": "2026-04-18T09:13:30.312Z",
+    "month": "April",
+    "year": "2026",
+    "total": 1,
+    "sent": 0,
+    "failed": 1,
+    "results": [
+      {
+        "id": "54",
+        "name": "Anshad P",
+        "email": "anshadperumbally@gmail.com",
+        "status": "failed",
+        "error": "SMTP not configured. Go to Settings and enter your email credentials."
+      }
+    ]
+  },
+  {
+    "batchId": "1776503377231",
+    "timestamp": "2026-04-18T09:09:37.232Z",
+    "month": "April",
+    "year": "2026",
+    "total": 1,
+    "sent": 0,
+    "failed": 1,
+    "results": [
+      {
+        "id": "54",
+        "name": "Anshad P",
+        "email": "anshadperumbally@gmail.com",
+        "status": "failed",
+        "error": "SMTP not configured. Go to Settings and enter your email credentials."
+      }
+    ]
+  },
+  {
+    "batchId": "1776503100851",
+    "timestamp": "2026-04-18T09:05:00.854Z",
+    "month": "April",
+    "year": "2026",
+    "total": 1,
+    "sent": 0,
+    "failed": 1,
+    "results": [
+      {
+        "id": "EMP001",
+        "name": "Rajesh Kumar",
+        "email": "rajesh.kumar@example.com",
+        "status": "failed",
+        "error": "SMTP not configured. Go to Settings and enter your email credentials."
+      }
+    ]
+  },
+  {
+    "batchId": "1776500331147",
+    "timestamp": "2026-04-18T08:18:51.159Z",
+    "month": "April",
+    "year": "2026",
+    "total": 4,
+    "sent": 0,
+    "failed": 4,
+    "results": [
+      {
+        "id": "EMP001",
+        "name": "Rajesh Kumar",
+        "email": "rajesh.kumar@example.com",
+        "status": "failed",
+        "error": "SMTP not configured. Please configure SMTP in Settings."
+      },
+      {
+        "id": "EMP002",
+        "name": "Priya Sharma",
+        "email": "priya.sharma@example.com",
+        "status": "failed",
+        "error": "SMTP not configured. Please configure SMTP in Settings."
+      },
+      {
+        "id": "EMP003",
+        "name": "Amit Verma",
+        "email": "amit.verma@example.com",
+        "status": "failed",
+        "error": "SMTP not configured. Please configure SMTP in Settings."
+      },
+      {
+        "id": "EMP004",
+        "name": "",
+        "email": "",
+        "status": "failed",
+        "error": "SMTP not configured. Please configure SMTP in Settings."
+      }
+    ]
+  }
+]

@@ -1,0 +1,13 @@
+{
+  "companyName": "Speakerbox",
+  "companyAddress": "",
+  "companyEmail": "accounts@speakerbox.in",
+  "smtp": {
+    "host": "smtp.gmail.com",
+    "port": 587,
+    "secure": false,
+    "user": "accounts@speakerbox.in",
+    "pass": "lxbw iylr krbt lzhf",
+    "fromName": "Speakerbox Media LLP"
+  }
+}

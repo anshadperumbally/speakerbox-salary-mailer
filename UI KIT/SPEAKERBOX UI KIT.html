@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speakerbox Internal UI Kit</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        /* CORE STYLES FOR SPEAKERBOX INTERNAL TOOLS
+          This file defines the standard visual language for all internal apps.
+          - Font: Google Sans
+          - Theme: Dark
+          - Accent: Orange (#F97316)
+        */
+
+        body {
+            font-family: 'Google Sans', sans-serif;
+            background-color: #111111;
+            color: #E5E7EB; /* gray-200 */
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-weight: 700;
+            color: #FFFFFF;
+            letter-spacing: -0.025em; /* tracking-tight */
+        }
+
+        /* --- FORM ELEMENTS --- */
+        .form-input,
+        .form-select,
+        .form-textarea,
+        .form-password {
+            background-color: #222;
+            border: 1px solid #444;
+            color: #fff;
+            border-radius: 0.5rem; /* rounded-lg */
+            padding: 0.75rem; /* p-3 */
+            width: 100%;
+            transition: all 0.3s;
+        }
+
+        .form-input:focus,
+        .form-select:focus,
+        .form-textarea:focus,
+        .form-password:focus {
+            outline: none;
+            border-color: #F97316;
+            box-shadow: 0 0 0 2px #F9731630;
+        }
+
+        ::placeholder {
+            color: #777;
+        }
+
+        /* --- INTERACTIVE CARD/PLAN STYLES --- */
+        .plan-card {
+            background-color: #1F2937; /* gray-800 */
+            border: 2px solid #374151; /* gray-700 */
+            border-radius: 1rem; /* rounded-2xl */
+            padding: 2rem; /* p-8 */
+            transition: all 0.3s ease-in-out;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .plan-card.recommended {
+            border-color: #F97316;
+            transform: scale(1.02);
+            box-shadow: 0 10px 30px -15px rgba(249, 115, 22, 0.3);
+        }
+
+        /* --- FEATURE LIST STYLES (Check/Cross) --- */
+        .feature-list {
+            list-style: none;
+            padding-left: 0;
+        }
+        .feature-list li {
+            position: relative;
+            padding-left: 32px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+        }
+        .feature-list li::before {
+            position: absolute;
+            left: 0;
+            font-size: 1.25rem;
+            font-weight: bold;
+        }
+        .included::before {
+            content: '✓';
+            color: #F97316;
+        }
+        .excluded::before {
+            content: '✗';
+            color: #4B5563;
+        }
+        .excluded {
+            color: #6B7280;
+            text-decoration: line-through;
+        }
+
+        /* --- INTERACTIVE DROPDOWN (ACCORDION) --- */
+        .accordion > summary {
+            list-style: none;
+            cursor: pointer;
+            padding: 1.25rem;
+            background-color: #222;
+            border: 1px solid #444;
+            border-radius: 0.5rem;
+            transition: background-color 0.3s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 500;
+        }
+        .accordion > summary::-webkit-details-marker {
+            display: none;
+        }
+        .accordion > summary:hover {
+            background-color: #2a2a2a;
+        }
+        .accordion[open] > summary {
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+            border-bottom-color: transparent;
+        }
+        .accordion-content {
+            padding: 1.5rem;
+            border: 1px solid #444;
+            border-top: none;
+            border-bottom-left-radius: 0.5rem;
+            border-bottom-right-radius: 0.5rem;
+            background-color: #1a1a1a;
+        }
+        .accordion-arrow {
+            transition: transform 0.3s;
+        }
+        .accordion[open] .accordion-arrow {
+            transform: rotate(90deg);
+        }
+        
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Header -->
+    <header class="text-center py-12 border-b border-gray-800">
+        <a href="https://www.speakerbox.agency/" target="_blank" rel="noopener noreferrer" class="inline-block">
+            <img src="https://www.speakerbox.agency/_next/static/media/logoWhite.b1699314.svg" alt="Speakerbox Logo" class="h-12 mx-auto mb-4">
+        </a>
+        <h1 class="text-4xl font-bold tracking-tight">Speakerbox Internal UI Kit</h1>
+        <p class="text-lg text-gray-400 mt-2">A reference file for generating new tools and pages.</p>
+    </header>
+
+    <div class="container mx-auto py-12 space-y-12">
+
+        <!-- Section: Typography -->
+        <section>
+            <h2 class="text-3xl font-bold mb-6">Typography</h2>
+            <div class="bg-gray-800 p-8 rounded-xl space-y-4">
+                <h1 class="text-5xl font-bold tracking-tight">Headline 1 (H1)</h1>
+                <h2 class="text-4xl font-bold tracking-tight">Headline 2 (H2)</h2>
+                <h3 class="text-3xl font-bold">Headline 3 (H3)</h3>
+                <h4 class="text-2xl font-bold">Headline 4 (H4)</h4>
+                <p class="text-base text-gray-200">This is a standard body paragraph (`p`). It uses Google Sans and the default light text color for readability on a dark background. All main content should use this style.</p>
+                <p class="text-sm text-gray-400">This is muted text (`p.text-gray-400`). It's used for sub-headlines, helper text, and captions to provide context without overpowering the main content.</p>
+                <a href="#" class="text-orange-500 hover:text-orange-400 font-medium">This is a text link</a>
+            </div>
+        </section>
+
+        <!-- Section: Colors -->
+        <section>
+            <h2 class="text-3xl font-bold mb-6">Colors</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="p-4 rounded-xl bg-gray-800 text-center">
+                    <div class="w-full h-24 rounded-lg bg-[#111111] border border-gray-600"></div>
+                    <p class="mt-2 font-medium">Page Background</p>
+                    <p class="text-sm text-gray-400">#111111</p>
+                </div>
+                <div class="p-4 rounded-xl bg-gray-800 text-center">
+                    <div class="w-full h-24 rounded-lg bg-[#1F2937]"></div>
+                    <p class="mt-2 font-medium">Card/Modal BG</p>
+                    <p class="text-sm text-gray-400">#1F2937</p>
+                </div>
+                <div class="p-4 rounded-xl bg-gray-800 text-center">
+                    <div class="w-full h-24 rounded-lg bg-[#F97316]"></div>
+                    <p class="mt-2 font-medium">Primary Accent</p>
+                    <p class="text-sm text-gray-400">#F97316</p>
+                </div>
+                 <div class="p-4 rounded-xl bg-gray-800 text-center">
+                    <div class="w-full h-24 rounded-lg bg-[#374151]"></div>
+                    <p class="mt-2 font-medium">Border / Muted</p>
+                    <p class="text-sm text-gray-400">#374151</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section: Buttons -->
+        <section>
+            <h2 class="text-3xl font-bold mb-6">Buttons</h2>
+            <div class="bg-gray-800 p-8 rounded-xl space-y-6">
+                <!-- Primary Button -->
+                <div>
+                    <h4 class="text-lg font-medium mb-3">Primary Button</h4>
+                    <button class="px-6 py-3 text-lg font-bold rounded-lg bg-orange-600 hover:bg-orange-700 transition-colors">Generate Report</button>
+                </div>
+                <!-- Secondary Button -->
+                <div>
+                    <h4 class="text-lg font-medium mb-3">Secondary/Reset Button</h4>
+                    <button class="px-6 py-3 text-lg font-bold rounded-lg border border-gray-600 bg-transparent text-gray-400 hover:bg-gray-700 transition-colors">Start Again</button>
+                </div>
+                <!-- Toggle Button -->
+                <div>
+                    <h4 class="text-lg font-medium mb-3">Toggle Button Group</h4>
+                    <div class="bg-[#1F2937] p-1 rounded-full flex items-center space-x-1 w-max">
+                        <button class="py-2 px-6 rounded-full text-sm font-semibold active" style="background-color: #F97316; color: #FFFFFF; border-color: #F97316;">Plan A</button>
+                        <button class="py-2 px-6 rounded-full text-sm font-semibold toggle-btn" style="border: 1px solid #4B5563; color: #9CA3AF;">Plan B</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section: Form Elements (Inputs & Writing Space) -->
+        <section>
+            <h2 class="text-3xl font-bold mb-6">Form Elements</h2>
+            <div class="bg-gray-800 p-8 rounded-xl space-y-6">
+                <!-- Text Input -->
+                <div>
+                    <label for="text-input" class="font-medium mb-2 block">Text Input</label>
+                    <input type="text" id="text-input" class="form-input" placeholder="e.g., Client Name">
+                </div>
+                <!-- Select Dropdown -->
+                <div>
+                    <label for="select-dropdown" class="font-medium mb-2 block">Select Dropdown</label>
+                    <select id="select-dropdown" class="form-select">
+                        <option value="" disabled selected>Select Your Department</option>
+                        <option value="social">Social Media</option>
+                        <option value="design">Graphic Designers</option>
+                        <option value="video">Video Editors</option>
+                    </select>
+                </div>
+                <!-- Textarea (Writing Space) -->
+                <div>
+                    <label for="textarea" class="font-medium mb-2 block">Writing Space (Textarea)</label>
+                    <textarea id="textarea" class="form-textarea h-32" placeholder="e.g., Special Note (Onam Campaign...)"></textarea>
+                </div>
+                <!-- Focus State Example -->
+                 <div>
+                    <label class="font-medium mb-2 block">Focus State Example</label>
+                    <input type="text" class="form-input" placeholder="This input is in focus" style="border-color: #F97316; box-shadow: 0 0 0 2px #F9731630;">
+                </div>
+            </div>
+        </section>
+
+        <!-- Section: Interactive Elements -->
+        <section>
+             <h2 class="text-3xl font-bold mb-6">Interactive Elements</h2>
+             <div class="bg-gray-800 p-8 rounded-xl space-y-8">
+                 <!-- Accordion / Dropdown -->
+                <div>
+                    <h4 class="text-lg font-medium mb-3">Accordion / Details Dropdown</h4>
+                    <details class="accordion">
+                        <summary>
+                            <span>Branding & Design</span>
+                            <span class="accordion-arrow">▶</span>
+                        </summary>
+                        <div class="accordion-content">
+                            <p>This area holds the content that is revealed when the user clicks the summary.</p>
+                        </div>
+                    </details>
+                </div>
+                <!-- Feature List -->
+                <div>
+                     <h4 class="text-lg font-medium mb-3">Feature List (Included / Excluded)</h4>
+                     <ul class="feature-list">
+                        <li class="included">Campaign Planning</li>
+                        <li class="included">Advanced Video Production</li>
+                        <li class="excluded">Basic Project Plan Support</li>
+                     </ul>
+                </div>
+             </div>
+        </section>
+
+        <!-- Section: Layouts & Cards -->
+        <section>
+            <h2 class="text-3xl font-bold mb-6">Layouts & Cards</h2>
+            <div class="bg-gray-800 p-8 rounded-xl">
+                 <h4 class="text-lg font-medium mb-3">3-Column Grid (Responsive)</h4>
+                 <div class="grid md:grid-cols-3 gap-8">
+                    <!-- Card 1 -->
+                    <div class="plan-card">
+                        <h3 class="text-xl font-bold">Basic Plan</h3>
+                        <p class="text-sm text-gray-400 mt-2">This is a standard plan card.</p>
+                    </div>
+                    <!-- Card 2 (Recommended) -->
+                    <div class="plan-card recommended">
+                        <h3 class="text-xl font-bold">Standard Plan</h3>
+                        <p class="text-sm text-gray-400 mt-2">This is the `recommended` card.</p>
+                    </div>
+                    <!-- Card 3 -->
+                    <div class="plan-card">
+                        <h3 class="text-xl font-bold">Premium Plan</h3>
+                        <p class="text-sm text-gray-400 mt-2">This is another standard plan card.</p>
+                    </div>
+                 </div>
+            </div>
+        </section>
+        
+        <!-- Section: Modals -->
+        <section>
+            <h2 class="text-3xl font-bold mb-6">Modals</h2>
+            <div class="bg-gray-800 p-8 rounded-xl">
+                <h4 class="text-lg font-medium mb-3">Modal Structure</h4>
+                <p class="text-gray-400 mb-4">This is the typical structure for a modal (e.g., Admin Password).</p>
+                <div class="relative p-8 border border-dashed border-gray-600 rounded-lg">
+                    <!-- Modal (simulated) -->
+                    <div class="relative z-10 max-w-md mx-auto">
+                        <div class="bg-[#1F2937] p-8 rounded-2xl border border-gray-700 text-center">
+                             <h2 class="text-2xl font-bold mb-4 text-white">Modal Title</h2>
+                             <p class="text-gray-400 mb-6 text-sm">This is the modal content area.</p>
+                             <input type="password" class="form-password text-center" placeholder="******">
+                             <button class="w-full mt-6 p-3 text-lg font-bold rounded-lg bg-orange-600 hover:bg-orange-700">Unlock</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <footer class="text-center mt-12 py-8 border-t border-gray-800">
+        <p class="text-gray-600 text-sm">Speakerbox Internal UI Kit</p>
+    </footer>
+
+</body>
+</html>
