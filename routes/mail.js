@@ -3,9 +3,10 @@ const router = express.Router();
 const fs = require('fs');
 const path = require('path');
 const { sendSalarySlip, generatePDF } = require('../services/emailService');
+const { dataDir } = require('../config');
 
-const EMPLOYEES_FILE = path.join(__dirname, '../data/employees.json');
-const LOGS_FILE = path.join(__dirname, '../data/logs.json');
+const EMPLOYEES_FILE = path.join(dataDir, 'employees.json');
+const LOGS_FILE = path.join(dataDir, 'logs.json');
 
 const readEmployees = () => JSON.parse(fs.readFileSync(EMPLOYEES_FILE, 'utf8') || '[]');
 const readLogs = () => {

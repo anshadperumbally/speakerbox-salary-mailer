@@ -12,17 +12,17 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/UI KIT', express.static(path.join(__dirname, 'UI KIT')));
 
-// Ensure data directory exists
-const dataDir = path.join(__dirname, 'data');
-if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+const { dataDir, uploadsDir } = require('./config');
 
-const uploadsDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-
-// Initialize data files
+// Initialize data files from local data dir if empty (for Vercel)
 const initDataFile = (filePath, defaultData) => {
   if (!fs.existsSync(filePath)) {
-    fs.writeFileSync(filePath, JSON.stringify(defaultData, null, 2));
+    const localShippedPath = path.join(__dirname, 'data', path.basename(filePath));
+    if (fs.existsSync(localShippedPath)) {
+      fs.copyFileSync(localShippedPath, filePath);
+    } else {
+      fs.writeFileSync(filePath, JSON.stringify(defaultData, null, 2));
+    }
   }
 };
 
@@ -103,10 +103,14 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`\n🚀 Salary Slip Mailer running at http://localhost:${PORT}`);
-  console.log(`📂 Data stored in: ${dataDir}`);
-  console.log(`\nPress Ctrl+C to stop the server\n`);
-});
+if (process.env.VERCEL === '1') {
+  module.exports = app;
+} else {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(`\n🚀 Salary Slip Mailer running at http://localhost:${PORT}`);
+    console.log(`📂 Data stored in: ${dataDir}`);
+    console.log(`\nPress Ctrl+C to stop the server\n`);
+  });
+}
  

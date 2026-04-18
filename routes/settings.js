@@ -3,8 +3,9 @@ const router = express.Router();
 const fs = require('fs');
 const path = require('path');
 const nodemailer = require('nodemailer');
+const { dataDir } = require('../config');
 
-const SETTINGS_FILE = path.join(__dirname, '../data/settings.json');
+const SETTINGS_FILE = path.join(dataDir, 'settings.json');
 
 const readSettings = () => JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8'));
 const writeSettings = (data) => fs.writeFileSync(SETTINGS_FILE, JSON.stringify(data, null, 2));

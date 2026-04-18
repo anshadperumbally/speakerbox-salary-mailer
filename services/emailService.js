@@ -2,8 +2,9 @@ const nodemailer = require('nodemailer');
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
+const { dataDir } = require('../config');
 
-const SETTINGS_FILE = path.join(__dirname, '../data/settings.json');
+const SETTINGS_FILE = path.join(dataDir, 'settings.json');
 const readSettings = () => JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8'));
 
 // ─── Currency formatter ───────────────────────────────────────────

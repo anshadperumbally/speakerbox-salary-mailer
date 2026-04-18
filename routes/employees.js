@@ -4,9 +4,10 @@ const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
 const csv = require('csv-parser');
+const { dataDir, uploadsDir } = require('../config');
 
-const DATA_FILE = path.join(__dirname, '../data/employees.json');
-const upload = multer({ dest: path.join(__dirname, '../uploads/') });
+const DATA_FILE = path.join(dataDir, 'employees.json');
+const upload = multer({ dest: uploadsDir });
 
 const readEmployees = () => {
   if (!fs.existsSync(DATA_FILE)) return [];
