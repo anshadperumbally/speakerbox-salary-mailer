@@ -94,6 +94,7 @@ function filterEmployees() {
 
   tbody.innerHTML = filtered.map(emp => `
     <tr>
+      <td><input type="checkbox" class="emp-checkbox" value="${emp.id}" onchange="updateSelectionUI()"/></td>
       <td><span class="emp-id-badge">${emp.id}</span></td>
       <td class="emp-name">${emp.name}</td>
       <td>${emp.department || emp.position || '—'}</td>
@@ -115,6 +116,36 @@ function filterEmployees() {
         </div>
       </td>
     </tr>`).join('');
+  updateSelectionUI();
+}
+
+function toggleSelectAll(master) {
+  const cbs = document.querySelectorAll('.emp-checkbox');
+  cbs.forEach(cb => cb.checked = master.checked);
+  updateSelectionUI();
+}
+
+function updateSelectionUI() {
+  const cbs = document.querySelectorAll('.emp-checkbox');
+  const checked = [...cbs].filter(cb => cb.checked);
+  const btn = document.getElementById('delete-selected-btn');
+  if (btn) {
+    btn.style.display = checked.length > 0 ? 'inline-flex' : 'none';
+    if (checked.length > 0) {
+      btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg> Delete ${checked.length}`;
+    }
+  }
+}
+
+async function deleteSelectedEmployees() {
+  const checked = [...document.querySelectorAll('.emp-checkbox:checked')].map(cb => cb.value);
+  if (checked.length === 0) return;
+  if (!confirm(`Are you sure you want to delete ${checked.length} selected employees from the list?`)) return;
+  
+  allEmployees = allEmployees.filter(e => !checked.includes(e.id));
+  toast(`Removed ${checked.length} employees`, 'info');
+  filterEmployees();
+  if (currentPage === 'dashboard') loadDashboard();
 }
 
 function populateDeptFilter(selectId) {
@@ -163,49 +194,39 @@ function closeEmployeeModal() {
 
 async function saveEmployee() {
   const editId = document.getElementById('emp-edit-id').value;
+  const basic = parseFloat(document.getElementById('emp-basic').value || 0);
   const body = {
-    id: document.getElementById('emp-id').value.trim(),
-    name: document.getElementById('emp-name').value.trim(),
-    email: document.getElementById('emp-email').value.trim(),
-    joiningDate: document.getElementById('emp-joining').value,
+    id:         document.getElementById('emp-id').value.trim(),
+    name:       document.getElementById('emp-name').value.trim(),
+    email:      document.getElementById('emp-email').value.trim(),
     department: document.getElementById('emp-dept').value.trim(),
-    position: document.getElementById('emp-pos').value.trim(),
-    basic: document.getElementById('emp-basic').value,
-    hra: document.getElementById('emp-hra').value,
-    da: document.getElementById('emp-da').value,
-    conveyance: document.getElementById('emp-conv').value,
-    medical: document.getElementById('emp-med').value,
-    pf: document.getElementById('emp-pf').value,
-    tds: document.getElementById('emp-tds').value,
-    otherDeductions: document.getElementById('emp-other').value
+    position:   document.getElementById('emp-pos').value.trim(),
+    basic,
+    ot:         0, // Manually added for now
+    bonus:      0,
+    net:        basic // Simple net pay for manual entry
   };
   if (!body.name || !body.email) { toast('Name and email are required', 'error'); return; }
-  let res;
+  
   if (editId) {
-    res = await api(`/api/employees/${editId}`, { method: 'PUT', body: JSON.stringify(body) });
+    const idx = allEmployees.findIndex(e => e.id === editId);
+    if (idx >= 0) allEmployees[idx] = { ...allEmployees[idx], ...body };
   } else {
-    res = await api('/api/employees', { method: 'POST', body: JSON.stringify(body) });
+    allEmployees.push(body);
   }
-  if (res.success) {
-    toast(editId ? 'Employee updated!' : 'Employee added!', 'success');
-    closeEmployeeModal();
-    await fetchEmployees();
-    filterEmployees();
-    if (currentPage === 'dashboard') loadDashboard();
-  } else {
-    toast(res.error || 'Failed to save', 'error');
-  }
+  
+  toast(editId ? 'Employee updated in memory!' : 'Employee added to memory!', 'success');
+  closeEmployeeModal();
+  filterEmployees();
+  if (currentPage === 'dashboard') loadDashboard();
 }
 
 async function deleteEmployee(id) {
-  if (!confirm('Delete this employee?')) return;
-  const res = await api(`/api/employees/${id}`, { method: 'DELETE' });
-  if (res.success) {
-    toast('Employee deleted', 'info');
-    await fetchEmployees();
-    filterEmployees();
-    if (currentPage === 'dashboard') loadDashboard();
-  }
+  if (!confirm('Remove this employee from the list?')) return;
+  allEmployees = allEmployees.filter(e => e.id !== id);
+  toast('Employee removed', 'info');
+  filterEmployees();
+  if (currentPage === 'dashboard') loadDashboard();
 }
 
 function triggerCSVImport() { document.getElementById('csv-file-input').click(); }
