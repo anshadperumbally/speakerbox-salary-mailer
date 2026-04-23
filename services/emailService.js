@@ -49,7 +49,7 @@ const getTransporter = () => {
 const generatePDF = (emp, month, year) => {
   return new Promise((resolve, reject) => {
     const settings = readSettings();
-    const { gross, totalDeductions, net } = calcPayroll(emp);
+    const { earned, gross, totalDeductions, net } = calcPayroll(emp);
     const slipMonth = month || emp.month || '';
     const slipYear  = year  || emp.year  || '';
 
