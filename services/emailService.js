@@ -15,10 +15,11 @@ const fmt = (n) => {
 
 // ─── Calculate derived fields ─────────────────────────────────────
 const calcPayroll = (emp) => {
-  // 1. Earned Salary = Basic + OT + Bonus
-  const earned = parseFloat(emp.basic || 0) + 
+  // 1. Earned Salary = Provided earned value OR (Basic + OT + Bonus)
+  const earned = parseFloat(emp.earned) || (
+                 parseFloat(emp.basic || 0) + 
                  parseFloat(emp.ot || 0) + 
-                 parseFloat(emp.bonus || 0);
+                 parseFloat(emp.bonus || 0));
 
   // 2. Total Deduction = Attendance Cuts + Leave Cut + Advance Salary
   const totalDeductions = parseFloat(emp.attendanceCuts || 0) +

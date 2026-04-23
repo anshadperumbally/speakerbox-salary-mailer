@@ -45,19 +45,19 @@ const csvRowToEmployee = (row, index, existingCount) => {
     comments:          (row['Comments'] || '').trim(),
     
     // Earnings
-    basic:             parseAmount(row['Basic Pay']),
-    earned:            parseAmount(row['Earned Salary']),
+    basic:             parseAmount(row['Basic'] || row['Basic Pay']),
+    earned:            parseAmount(row['earned'] || row['Earned Salary'] || row['Basic']), 
     ot:                parseAmount(row['OT']),
     bonus:             parseAmount(row['Bonus']),
-    gross:             parseAmount(row['Gross Salary']),
+    gross:             parseAmount(row['gross'] || row['Gross Salary']),
     
     // Deductions
     attendanceCuts:    parseAmount(row['Attendance Cuts']),
     leaveCut:          parseAmount(row['Leave Cut']),
-    advance:           parseAmount(row['Advance Salary']),
-    totalDeductions:   parseAmount(row['Total']),
+    advance:           parseAmount(row['Advance'] || row['Advance Salary']),
+    totalDeductions:   parseAmount(row['Total'] || row['deduction']),
     
-    net:               parseAmount(row['Net Salary']),
+    net:               parseAmount(row['Net Salary'] || row['Net'] || row['net']),
     
     // Standard implicit
     department:        (row['Department'] || '').trim(),
