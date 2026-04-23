@@ -164,10 +164,8 @@ const generatePDF = (emp, month, year) => {
     doc.font('Helvetica-Bold').fillColor(valColor).text(emp.balanceLeaves || '0', M + 85, y - 1, { width: 40, align: 'center' });
     drawFieldLine(M + 80, 50, y);
 
-    doc.font('Helvetica').fontSize(10).fillColor(labelColor).text('Leave Balance :', M + 150, y);
-    doc.font('Helvetica-Bold').fillColor(valColor).text(emp.leaveBalance || '0', M + 235, y - 1, { width: 40, align: 'center' });
-    drawFieldLine(M + 230, 50, y);
     y += 30;
+
 
     // Employee comments section removed per layout tweak
 
