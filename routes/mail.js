@@ -15,20 +15,12 @@ const readLogs = () => {
 };
 const writeLogs = (logs) => fs.writeFileSync(LOGS_FILE, JSON.stringify(logs, null, 2));
 
-// POST send bulk emails
+// POST send bulk emails (Accepts full employee objects)
 router.post('/send', async (req, res) => {
-  const { employeeIds, month, year, subject, bodyTemplate, sendAll, department } = req.body;
-  let employees = readEmployees();
+  const { employees, month, year, subject, bodyTemplate } = req.body;
 
-  // Filter employees
-  if (!sendAll && employeeIds && employeeIds.length > 0) {
-    employees = employees.filter(e => employeeIds.includes(e.id));
-  } else if (department && department !== 'all') {
-    employees = employees.filter(e => e.department === department);
-  }
-
-  if (employees.length === 0) {
-    return res.status(400).json({ error: 'No employees selected' });
+  if (!employees || !Array.isArray(employees) || employees.length === 0) {
+    return res.status(400).json({ error: 'No employees provided' });
   }
 
   const results = [];
@@ -43,7 +35,7 @@ router.post('/send', async (req, res) => {
     }
   }
 
-  // Log results
+  // Log results (Optional: can be disabled if user wants NO data)
   const logs = readLogs();
   logs.unshift({
     batchId,
@@ -55,7 +47,7 @@ router.post('/send', async (req, res) => {
     failed: results.filter(r => r.status === 'failed').length,
     results
   });
-  writeLogs(logs.slice(0, 100)); // keep last 100 batches
+  writeLogs(logs.slice(0, 100));
 
   res.json({ success: true, batchId, results });
 });
@@ -65,16 +57,14 @@ router.get('/logs', (req, res) => {
   res.json(readLogs());
 });
 
-// POST preview PDF
+// POST preview PDF (Accepts full employee object)
 router.post('/preview', async (req, res) => {
-  const { employeeId, month, year } = req.body;
-  const employees = readEmployees();
-  const emp = employees.find(e => e.id === employeeId);
-  if (!emp) return res.status(404).json({ error: 'Employee not found' });
+  const { employee, month, year } = req.body;
+  if (!employee) return res.status(400).json({ error: 'Employee data required' });
   try {
-    const pdfBuffer = await generatePDF(emp, month, year);
+    const pdfBuffer = await generatePDF(employee, month, year);
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `inline; filename="salary_slip_${emp.id}_${month}_${year}.pdf"`);
+    res.setHeader('Content-Disposition', `inline; filename="salary_slip_${employee.id}.pdf"`);
     res.send(pdfBuffer);
   } catch (err) {
     res.status(500).json({ error: err.message });

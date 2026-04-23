@@ -129,30 +129,20 @@ router.delete('/:id', (req, res) => {
   res.json({ success: true });
 });
 
-// POST import CSV
+// POST import CSV (No persistence)
 router.post('/import', upload.single('csv'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-  const existing = readEmployees();
   const newEmps = [];
 
   fs.createReadStream(req.file.path)
     .pipe(csv())
     .on('data', (row) => {
-      // Skip rows where Name is empty
       if (!row['Name'] && !row['name']) return;
-      newEmps.push(csvRowToEmployee(row, newEmps.length, existing.length));
+      newEmps.push(csvRowToEmployee(row, newEmps.length, 0));
     })
     .on('end', () => {
-      // Merge: update existing by id, append new ones
-      const merged = [...existing];
-      newEmps.forEach(ne => {
-        const idx = merged.findIndex(e => e.id === ne.id);
-        if (idx >= 0) merged[idx] = { ...merged[idx], ...ne };
-        else merged.push(ne);
-      });
-      writeEmployees(merged);
       try { fs.unlinkSync(req.file.path); } catch {}
-      res.json({ success: true, imported: newEmps.length });
+      res.json({ success: true, employees: newEmps });
     })
     .on('error', (err) => {
       res.status(500).json({ error: err.message });

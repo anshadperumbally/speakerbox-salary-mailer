@@ -47,6 +47,9 @@ function toast(msg, type = 'info') {
 
 // ─── Employees ───────────────────────────────────────────────────
 async function fetchEmployees() {
+  // If we have data in memory (from CSV), don't overwrite it from the server
+  // unless we're performing a fresh load.
+  if (allEmployees.length > 0) return allEmployees;
   allEmployees = await api('/api/employees');
   return allEmployees;
 }
@@ -212,13 +215,13 @@ async function importCSV(input) {
   if (!file) return;
   const formData = new FormData();
   formData.append('csv', file);
-  toast('Importing CSV…', 'info');
+  toast('Processing CSV…', 'info');
   const res = await fetch('/api/employees/import', { method: 'POST', body: formData });
   const data = await res.json();
   if (data.success) {
-    toast(`✅ Imported ${data.imported} employee${data.imported !== 1 ? 's' : ''} successfully!`, 'success');
-    await fetchEmployees();
-    filterEmployees();
+    allEmployees = data.employees; // Store globally in-memory
+    toast(`✅ Loaded ${allEmployees.length} employees from CSV. You can now cross-check and send.`, 'success');
+    renderEmployeesTable();
     if (currentPage === 'dashboard') loadDashboard();
   } else {
     toast('❌ Import failed: ' + (data.error || 'Unknown error'), 'error');
@@ -233,14 +236,15 @@ function downloadSampleCSV() {
 async function previewPDF(id) {
   const emp = allEmployees.find(e => e.id === id);
   if (!emp) return;
-  const month = emp.month || new Date().toLocaleString('en-IN', { month: 'long' });
-  const year  = emp.year  || new Date().getFullYear();
+  const month = emp.month || document.getElementById('salary-month')?.value || new Date().toLocaleString('en-IN', { month: 'long' });
+  const year  = emp.year  || document.getElementById('salary-year')?.value  || new Date().getFullYear();
+  
   toast('Generating PDF preview…', 'info');
   try {
     const res = await fetch('/api/mail/preview', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ employeeId: id, month, year })
+      body: JSON.stringify({ employee: emp, month, year })
     });
     if (!res.ok) { const e = await res.json(); toast('PDF error: ' + e.error, 'error'); return; }
     const blob = await res.blob();
@@ -378,23 +382,20 @@ async function sendEmails() {
   const subject = document.getElementById('email-subject').value;
   const bodyTemplate = document.getElementById('email-body').value;
 
-  let employeeIds = [];
-  let sendAll = false;
-  let department = '';
+  let empsToSend = [];
 
   if (target === 'all') {
-    sendAll = true;
+    empsToSend = allEmployees;
   } else if (target === 'department') {
-    department = document.getElementById('compose-dept').value;
-    if (department === 'all') sendAll = true;
+    const department = document.getElementById('compose-dept').value;
+    empsToSend = department === 'all' ? allEmployees : allEmployees.filter(e => e.department === department);
   } else {
-    employeeIds = [...document.querySelectorAll('#employee-checklist input:checked')].map(i => i.value);
-    if (employeeIds.length === 0) { toast('Select at least one employee', 'error'); return; }
+    const selectedIds = [...document.querySelectorAll('#employee-checklist input:checked')].map(i => i.value);
+    empsToSend = allEmployees.filter(e => selectedIds.includes(e.id));
   }
 
-  const empsToSend = sendAll ? allEmployees : (department ? allEmployees.filter(e => e.department === department) : allEmployees.filter(e => employeeIds.includes(e.id)));
   const total = empsToSend.length;
-  if (total === 0) { toast('No employees to send', 'error'); return; }
+  if (total === 0) { toast('No recipients selected', 'error'); return; }
 
   // Show progress
   const overlay = document.getElementById('send-overlay');
@@ -415,7 +416,7 @@ async function sendEmails() {
   try {
     const res = await api('/api/mail/send', {
       method: 'POST',
-      body: JSON.stringify({ employeeIds, month, year, subject, bodyTemplate, sendAll, department })
+      body: JSON.stringify({ employees: empsToSend, month, year, subject, bodyTemplate })
     });
     clearInterval(interval);
     bar.style.width = '100%';
