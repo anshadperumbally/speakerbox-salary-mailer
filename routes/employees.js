@@ -28,7 +28,32 @@ const parseAmount = (val) => {
 const csvRowToEmployee = (row, index, existingCount) => {
   const idValue = row['Employee No'] || row['Id'] || row['id'] || row['ID'];
   const id = String(idValue || `EMP${String(existingCount + index + 1).padStart(3, '0')}`).trim();
-  
+
+  const basic = parseAmount(row['Basic'] || row['Basic Pay']);
+  const earnedBasic = parseAmount(row['earned'] || row['Earned Salary']) || basic;
+  const ot = parseAmount(row['OT']);
+  const bonus = parseAmount(row['Bonus']);
+  const stipend = parseAmount(row['Stipend'] || row['stipend']);
+  const ta = parseAmount(row['TA'] || row['ta']);
+
+  const attendanceCuts = parseAmount(row['Attendance Cuts']);
+  const leaveCut = parseAmount(row['Leave Cut']);
+  const advance = parseAmount(row['Advance'] || row['Advance Salary']);
+  const unpaid = parseAmount(row['unpaid'] || row['Unpaid']);
+  const underworked = parseAmount(row['underworked'] || row['Underworked']);
+  const liability = parseAmount(row['liability'] || row['Liability']);
+
+  const calculatedDeductions = attendanceCuts + leaveCut + advance + unpaid + underworked + liability;
+  const totalDeductions = parseAmount(row['Total'] || row['deduction']) || calculatedDeductions;
+
+  const calculatedGross = earnedBasic + ot + bonus + stipend + ta;
+  const rawGross = parseAmount(row['gross'] || row['Gross Salary']);
+  const gross = rawGross > 0 ? Math.max(rawGross, calculatedGross) : calculatedGross;
+
+  const calculatedNet = gross - totalDeductions;
+  const rawNet = parseAmount(row['Net Salary'] || row['Net'] || row['net']);
+  const net = (rawNet > 0 && Math.abs(rawNet - calculatedNet) < 0.01) ? rawNet : calculatedNet;
+
   return {
     email:             (row['Email'] || '').trim(),
     id,
@@ -45,19 +70,24 @@ const csvRowToEmployee = (row, index, existingCount) => {
     comments:          (row['Comments'] || '').trim(),
     
     // Earnings
-    basic:             parseAmount(row['Basic'] || row['Basic Pay']),
-    earned:            parseAmount(row['earned'] || row['Earned Salary'] || row['Basic']), 
-    ot:                parseAmount(row['OT']),
-    bonus:             parseAmount(row['Bonus']),
-    gross:             parseAmount(row['gross'] || row['Gross Salary']),
+    basic,
+    earned:            earnedBasic, 
+    ot,
+    bonus,
+    stipend,
+    ta,
+    gross,
     
     // Deductions
-    attendanceCuts:    parseAmount(row['Attendance Cuts']),
-    leaveCut:          parseAmount(row['Leave Cut']),
-    advance:           parseAmount(row['Advance'] || row['Advance Salary']),
-    totalDeductions:   parseAmount(row['Total'] || row['deduction']),
+    attendanceCuts,
+    leaveCut,
+    advance,
+    unpaid,
+    underworked,
+    liability,
+    totalDeductions,
     
-    net:               parseAmount(row['Net Salary'] || row['Net'] || row['net']),
+    net,
     
     // Standard implicit
     department:        (row['Department'] || '').trim(),
@@ -75,6 +105,26 @@ router.get('/', (req, res) => {
 // POST add employee
 router.post('/', (req, res) => {
   const employees = readEmployees();
+  const basic = parseAmount(req.body.basic);
+  const earned = parseAmount(req.body.earned) || basic;
+  const ot = parseAmount(req.body.ot);
+  const bonus = parseAmount(req.body.bonus);
+  const stipend = parseAmount(req.body.stipend);
+  const ta = parseAmount(req.body.ta);
+  const calculatedGross = earned + ot + bonus + stipend + ta;
+  const gross = parseAmount(req.body.gross) || calculatedGross;
+
+  const attendanceCuts = parseAmount(req.body.attendanceCuts);
+  const leaveCut = parseAmount(req.body.leaveCut);
+  const advance = parseAmount(req.body.advance);
+  const unpaid = parseAmount(req.body.unpaid);
+  const underworked = parseAmount(req.body.underworked);
+  const liability = parseAmount(req.body.liability);
+  const calculatedDeductions = attendanceCuts + leaveCut + advance + unpaid + underworked + liability;
+  const deduction = parseAmount(req.body.deduction || req.body.totalDeductions) || calculatedDeductions;
+
+  const net = parseAmount(req.body.net) || (gross - deduction);
+
   const emp = {
     id:          req.body.id || `EMP${String(employees.length + 1).padStart(3, '0')}`,
     name:        req.body.name        || '',
@@ -91,19 +141,22 @@ router.post('/', (req, res) => {
     leaves:      parseFloat(req.body.leaves)      || 0,
     wfm:         parseFloat(req.body.wfm)         || 0,
     comments:    req.body.comments    || '',
-    basic:       parseAmount(req.body.basic),
-    ot:          parseAmount(req.body.ot),
-    bonus:       parseAmount(req.body.bonus),
-    stipend:     parseAmount(req.body.stipend),
-    ta:          parseAmount(req.body.ta),
-    earned:      parseAmount(req.body.earned),
-    gross:       parseAmount(req.body.gross),
-    advance:     parseAmount(req.body.advance),
-    unpaid:      parseAmount(req.body.unpaid),
-    underworked: parseAmount(req.body.underworked),
-    liability:   parseAmount(req.body.liability),
-    deduction:   parseAmount(req.body.deduction),
-    net:         parseAmount(req.body.net),
+    basic,
+    ot,
+    bonus,
+    stipend,
+    ta,
+    earned,
+    gross,
+    advance,
+    attendanceCuts,
+    leaveCut,
+    unpaid,
+    underworked,
+    liability,
+    deduction,
+    totalDeductions: deduction,
+    net,
     via:         req.body.via || 'Bank',
   };
   employees.push(emp);

@@ -55,8 +55,21 @@ async function fetchEmployees() {
 }
 
 function calcNet(emp) {
-  const earned = parseFloat(emp.basic || 0) + parseFloat(emp.ot || 0) + parseFloat(emp.bonus || 0);
-  const deductions = parseFloat(emp.attendanceCuts || 0) + parseFloat(emp.leaveCut || 0) + parseFloat(emp.advance || 0);
+  const base = parseFloat(emp.earned) || parseFloat(emp.basic || 0);
+  const ot = parseFloat(emp.ot || 0);
+  const bonus = parseFloat(emp.bonus || 0);
+  const stipend = parseFloat(emp.stipend || 0);
+  const ta = parseFloat(emp.ta || 0);
+  const earned = base + ot + bonus + stipend + ta;
+
+  const deductions = parseFloat(emp.totalDeductions) || (
+    parseFloat(emp.attendanceCuts || 0) +
+    parseFloat(emp.leaveCut || 0) +
+    parseFloat(emp.advance || 0) +
+    parseFloat(emp.unpaid || 0) +
+    parseFloat(emp.underworked || 0) +
+    parseFloat(emp.liability || 0)
+  );
   return earned - deductions;
 }
 
@@ -99,7 +112,7 @@ function filterEmployees() {
       <td class="emp-name">${emp.name}</td>
       <td>${emp.department || emp.position || '—'}</td>
       <td style="color:var(--text-secondary)">${emp.position || '—'}</td>
-      <td class="net-pay">${formatINR(emp.net || 0)}</td>
+      <td class="net-pay">${formatINR(emp.net || calcNet(emp))}</td>
       <td style="color:var(--text-secondary);font-size:11px">${emp.email}</td>
       <td style="color:var(--text-muted);font-size:11px">${emp.month || '—'} ${emp.year || ''}</td>
       <td>
@@ -161,8 +174,11 @@ function populateDeptFilter(selectId) {
 function openEmployeeModal(id = null) {
   const modal = document.getElementById('employee-modal');
   modal.style.display = 'flex';
-  const fields = ['id','name','email','joining','dept','pos','basic','hra','da','conv','med','pf','tds','other'];
-  fields.forEach(f => document.getElementById(`emp-${f}`).value = '');
+  const fields = ['id','name','email','joining','dept','pos','basic','bonus','ot','hra','da','conv','med','pf','tds','other'];
+  fields.forEach(f => {
+    const el = document.getElementById(`emp-${f}`);
+    if (el) el.value = '';
+  });
   document.getElementById('emp-edit-id').value = '';
   document.getElementById('modal-title').textContent = 'Add Employee';
 
@@ -178,6 +194,8 @@ function openEmployeeModal(id = null) {
     document.getElementById('emp-dept').value = emp.department || '';
     document.getElementById('emp-pos').value = emp.position || '';
     document.getElementById('emp-basic').value = emp.basic || '';
+    if (document.getElementById('emp-bonus')) document.getElementById('emp-bonus').value = emp.bonus || '';
+    if (document.getElementById('emp-ot')) document.getElementById('emp-ot').value = emp.ot || '';
     document.getElementById('emp-hra').value = emp.hra || '';
     document.getElementById('emp-da').value = emp.da || '';
     document.getElementById('emp-conv').value = emp.conveyance || '';
@@ -195,6 +213,11 @@ function closeEmployeeModal() {
 async function saveEmployee() {
   const editId = document.getElementById('emp-edit-id').value;
   const basic = parseFloat(document.getElementById('emp-basic').value || 0);
+  const bonus = parseFloat(document.getElementById('emp-bonus')?.value || 0);
+  const ot = parseFloat(document.getElementById('emp-ot')?.value || 0);
+  const earned = basic;
+  const gross = basic + ot + bonus;
+  const net = gross;
   const body = {
     id:         document.getElementById('emp-id').value.trim(),
     name:       document.getElementById('emp-name').value.trim(),
@@ -202,9 +225,11 @@ async function saveEmployee() {
     department: document.getElementById('emp-dept').value.trim(),
     position:   document.getElementById('emp-pos').value.trim(),
     basic,
-    ot:         0, // Manually added for now
-    bonus:      0,
-    net:        basic // Simple net pay for manual entry
+    earned,
+    ot,
+    bonus,
+    gross,
+    net
   };
   if (!body.name || !body.email) { toast('Name and email are required', 'error'); return; }
   

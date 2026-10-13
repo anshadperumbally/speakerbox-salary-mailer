@@ -15,22 +15,40 @@ const fmt = (n) => {
 
 // ─── Calculate derived fields ─────────────────────────────────────
 const calcPayroll = (emp) => {
-  // 1. Earned Salary = Provided earned value OR (Basic + OT + Bonus)
-  const earned = parseFloat(emp.earned) || (
-                 parseFloat(emp.basic || 0) + 
-                 parseFloat(emp.ot || 0) + 
-                 parseFloat(emp.bonus || 0));
+  // Base earned amount (from attendance/paid days, or basic pay)
+  const basic = parseFloat(emp.basic || 0);
+  const earnedBasic = (emp.earned !== undefined && emp.earned !== null && !isNaN(parseFloat(emp.earned)) && parseFloat(emp.earned) > 0)
+    ? parseFloat(emp.earned)
+    : basic;
 
-  // 2. Total Deduction = Attendance Cuts + Leave Cut + Advance Salary
-  const totalDeductions = parseFloat(emp.attendanceCuts || 0) +
-                          parseFloat(emp.leaveCut || 0) +
-                          parseFloat(emp.advance || 0);
+  const ot = parseFloat(emp.ot || 0);
+  const bonus = parseFloat(emp.bonus || 0);
+  const stipend = parseFloat(emp.stipend || 0);
+  const ta = parseFloat(emp.ta || 0);
 
-  // 3. Gross Salary = Earned Salary - Deduction
-  const gross = earned - totalDeductions;
+  // 1. Total Earned / Gross Salary before deductions (includes Basic/Earned + OT + Bonus)
+  const calculatedEarned = earnedBasic + ot + bonus + stipend + ta;
+  const earned = calculatedEarned;
+  const gross = (emp.gross !== undefined && emp.gross !== null && !isNaN(parseFloat(emp.gross)) && parseFloat(emp.gross) > 0)
+    ? Math.max(parseFloat(emp.gross), calculatedEarned)
+    : calculatedEarned;
 
-  // 4. Net Salary = Gross Salary
-  const net = gross;
+  // 2. Total Deductions = Attendance Cuts + Leave Cut + Advance Salary + Other Deductions
+  const attendanceCuts = parseFloat(emp.attendanceCuts || 0);
+  const leaveCut = parseFloat(emp.leaveCut || 0);
+  const advance = parseFloat(emp.advance || 0);
+  const otherDeductions = parseFloat(emp.unpaid || 0) + parseFloat(emp.underworked || 0) + parseFloat(emp.liability || 0);
+  const calculatedDeductions = attendanceCuts + leaveCut + advance + otherDeductions;
+
+  const totalDeductions = (emp.totalDeductions !== undefined && emp.totalDeductions !== null && !isNaN(parseFloat(emp.totalDeductions)) && parseFloat(emp.totalDeductions) > 0)
+    ? parseFloat(emp.totalDeductions)
+    : calculatedDeductions;
+
+  // 3. Net Salary = Gross Salary - Total Deductions
+  const calculatedNet = gross - totalDeductions;
+  const net = (emp.net !== undefined && emp.net !== null && !isNaN(parseFloat(emp.net)) && parseFloat(emp.net) > 0 && Math.abs(parseFloat(emp.net) - calculatedNet) < 0.01)
+    ? parseFloat(emp.net)
+    : calculatedNet;
 
   return { earned, gross, totalDeductions, net };
 };
@@ -183,17 +201,17 @@ const generatePDF = (emp, month, year) => {
         doc.font(isBold1 ? 'Helvetica-Bold' : 'Helvetica').fontSize(10).fillColor('#000000').text(label1, M, yPos, {width: 250});
         doc.text(':', M + 175, yPos);
         const dispVal1 = isNaN(parseFloat(val1)) ? val1 : parseFloat(val1 || 0).toFixed(2);
-        const vPrint = (label1 === 'Basic Salary' || label1 === 'Earned Salary') ? "Rs. " + dispVal1.replace('.00','') : dispVal1;
-        doc.font('Helvetica-Bold').fillColor('#000000').text(vPrint, M + 190, yPos, {width: 70, align: 'right'});
+        const vPrint = (label1 === 'Basic Pay' || label1 === 'Basic Salary' || label1 === 'Earned Salary') ? "Rs. " + dispVal1.replace('.00','') : dispVal1;
+        doc.font('Helvetica-Bold').fillColor('#000000').text(vPrint, M + 185, yPos, {width: 80, align: 'right'});
       }
       
       // col 2
       if(label2) {
         doc.font(isBold2 ? 'Helvetica-Bold' : 'Helvetica').fontSize(10).fillColor('#000000').text(label2, M + 285, yPos, {width: 165});
-        doc.text(':', M + 450, yPos);
+        doc.text(':', M + 440, yPos);
         const dispVal2 = isNaN(parseFloat(val2)) ? val2 : parseFloat(val2 || 0).toFixed(2);
         const clr2 = label2 === 'Total Deduction' ? '#cc0000' : '#000000';
-        doc.font('Helvetica-Bold').fillColor(clr2).text(dispVal2, M + 465, yPos, {width: 45, align: 'right'});
+        doc.font('Helvetica-Bold').fillColor(clr2).text(dispVal2, M + 450, yPos, {width: 60, align: 'right'});
       }
     };
 
@@ -208,7 +226,7 @@ const generatePDF = (emp, month, year) => {
     doc.moveTo(M, y-2).lineTo(M + CW, y-2).strokeColor('#cccccc').lineWidth(0.5).stroke();
 
     doc.font('Helvetica').fontSize(10).fillColor('#000000').text('Gross Salary', M, y);
-    doc.font('Helvetica-Bold').fillColor('#000000').text(': ' + parseFloat(gross).toFixed(2), M + 450, y, {width: 60, align: 'right'});
+    doc.font('Helvetica-Bold').fillColor('#000000').text(': ' + parseFloat(gross).toFixed(2), M + 440, y, {width: 70, align: 'right'});
     
     y += 10;
     doc.moveTo(M, y+5).lineTo(M + CW, y+5).strokeColor('#cccccc').dash(1, {space:1}).lineWidth(0.5).stroke();
@@ -220,7 +238,7 @@ const generatePDF = (emp, month, year) => {
     doc.font('Helvetica').fontSize(10).fillColor('#000000').text('Net Salary       :', M, y+6);
     
     doc.rect(M + 80, y, 140, 24).strokeColor('#000000').lineWidth(1.2).stroke();
-    const netStr = Number(emp.net || net).toLocaleString('en-IN');
+    const netStr = Number(net).toLocaleString('en-IN');
     doc.font('Helvetica-Bold').fontSize(14).fillColor('#007800').text('Rs. ' + netStr + '/-', M + 80, y + 5, {width: 140, align: 'center'});
 
     // Paid Via
