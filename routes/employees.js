@@ -67,25 +67,21 @@ const csvRowToEmployee = (row, index, existingCount) => {
   const calculatedEarned = rawEarned > 0 ? rawEarned : (earnedBasic + ot + bonus + stipend + ta || basic);
   const earned = calculatedEarned;
 
+  // Deductions ONLY include Attendance Cuts, Leave Cut, Advance Salary
   const attendanceCuts = parseAmount(getVal(row, 'Attendance Cuts', 'Attendance Cut', 'attendance cuts', 'Attendance'));
   const leaveCut = parseAmount(getVal(row, 'Leave Cut', 'Leave Cuts', 'leave cut', 'Leave'));
   const advance = parseAmount(getVal(row, 'Advance Salary', 'Advance', 'advance', 'Advance Pay'));
-  const unpaid = parseAmount(getVal(row, 'unpaid', 'Unpaid', 'Unpaid Days'));
-  const underworked = parseAmount(getVal(row, 'underworked', 'Underworked'));
-  const liability = parseAmount(getVal(row, 'liability', 'Liability'));
 
-  const calculatedDeductions = attendanceCuts + leaveCut + advance + unpaid + underworked + liability;
-  const rawDeductions = parseAmount(getVal(row, 'Total', 'Total Deduction', 'Total Deductions', 'deduction', 'deductions', 'Deduction'));
-  const totalDeductions = rawDeductions > 0 ? rawDeductions : calculatedDeductions;
+  const calculatedDeductions = attendanceCuts + leaveCut + advance;
+  const rawDeductions = parseAmount(getVal(row, 'Total Deduction', 'Total Deductions', 'Deduction', 'Deductions'));
+  const totalDeductions = (attendanceCuts > 0 || leaveCut > 0 || advance > 0)
+    ? calculatedDeductions
+    : (rawDeductions > 0 ? rawDeductions : calculatedDeductions);
 
-  // Gross Salary & Net Pay
-  // User requirement: net pay is = gross. All things available in csv sheet.
-  const rawGross = parseAmount(getVal(row, 'Gross Salary', 'Gross Pay', 'Gross', 'gross'));
-  const rawNet = parseAmount(getVal(row, 'Net Salary', 'Net Pay', 'Net', 'net', 'Net Amount'));
-
+  // Gross Salary = Total earned - Total deduction
   const calculatedGross = Math.max(0, earned - totalDeductions);
-  const gross = rawGross > 0 ? rawGross : (rawNet > 0 ? rawNet : calculatedGross);
-  const net = rawNet > 0 ? rawNet : gross;
+  const gross = earned > 0 ? calculatedGross : (parseAmount(getVal(row, 'Gross Salary', 'Gross Pay', 'Gross', 'gross')) || calculatedGross);
+  const net = gross;
 
   return {
     email:             (getVal(row, 'Email', 'email', 'E-mail', 'Email ID') || '').trim(),
@@ -115,9 +111,9 @@ const csvRowToEmployee = (row, index, existingCount) => {
     attendanceCuts,
     leaveCut,
     advance,
-    unpaid,
-    underworked,
-    liability,
+    unpaid:            0,
+    underworked:       0,
+    liability:         0,
     totalDeductions,
     
     net,
@@ -147,21 +143,20 @@ router.post('/', (req, res) => {
   const earnedBasic = rawEarned > 0 ? rawEarned : basic;
   const earned = rawEarned > 0 ? rawEarned : (earnedBasic + ot + bonus + stipend + ta || basic);
 
+  // Deductions ONLY include Attendance Cuts, Leave Cut, Advance Salary
   const attendanceCuts = parseAmount(req.body.attendanceCuts);
   const leaveCut = parseAmount(req.body.leaveCut);
   const advance = parseAmount(req.body.advance);
-  const unpaid = parseAmount(req.body.unpaid);
-  const underworked = parseAmount(req.body.underworked);
-  const liability = parseAmount(req.body.liability);
-  const calculatedDeductions = attendanceCuts + leaveCut + advance + unpaid + underworked + liability;
+  const calculatedDeductions = attendanceCuts + leaveCut + advance;
   const rawDeductions = parseAmount(req.body.deduction || req.body.totalDeductions);
-  const totalDeductions = rawDeductions > 0 ? rawDeductions : calculatedDeductions;
+  const totalDeductions = (attendanceCuts > 0 || leaveCut > 0 || advance > 0)
+    ? calculatedDeductions
+    : (rawDeductions > 0 ? rawDeductions : calculatedDeductions);
 
-  const rawGross = parseAmount(req.body.gross);
-  const rawNet = parseAmount(req.body.net);
+  // Gross Salary = Total earned - Total deduction
   const calculatedGross = Math.max(0, earned - totalDeductions);
-  const gross = rawGross > 0 ? rawGross : (rawNet > 0 ? rawNet : calculatedGross);
-  const net = rawNet > 0 ? rawNet : gross;
+  const gross = earned > 0 ? calculatedGross : (parseAmount(req.body.gross) || calculatedGross);
+  const net = gross;
 
   const emp = {
     id:          req.body.id || `EMP${String(employees.length + 1).padStart(3, '0')}`,

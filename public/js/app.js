@@ -55,11 +55,6 @@ async function fetchEmployees() {
 }
 
 function calcNet(emp) {
-  const rawNet = parseFloat(emp.net || 0);
-  if (rawNet > 0) return rawNet;
-  const rawGross = parseFloat(emp.gross || 0);
-  if (rawGross > 0) return rawGross;
-
   const base = parseFloat(emp.earned) || parseFloat(emp.basic || 0);
   const ot = parseFloat(emp.ot || 0);
   const bonus = parseFloat(emp.bonus || 0);
@@ -67,15 +62,18 @@ function calcNet(emp) {
   const ta = parseFloat(emp.ta || 0);
   const earned = base + ot + bonus + stipend + ta;
 
-  const deductions = parseFloat(emp.totalDeductions) || (
-    parseFloat(emp.attendanceCuts || 0) +
-    parseFloat(emp.leaveCut || 0) +
-    parseFloat(emp.advance || 0) +
-    parseFloat(emp.unpaid || 0) +
-    parseFloat(emp.underworked || 0) +
-    parseFloat(emp.liability || 0)
-  );
-  return Math.max(0, earned - deductions);
+  // Deductions ONLY include Attendance Cuts, Leave Cut, Advance Salary
+  const attendanceCuts = parseFloat(emp.attendanceCuts || 0);
+  const leaveCut = parseFloat(emp.leaveCut || 0);
+  const advance = parseFloat(emp.advance || 0);
+  const deductions = (attendanceCuts > 0 || leaveCut > 0 || advance > 0)
+    ? (attendanceCuts + leaveCut + advance)
+    : (parseFloat(emp.totalDeductions || 0));
+
+  if (earned > 0) {
+    return Math.max(0, earned - deductions);
+  }
+  return parseFloat(emp.net || 0) || parseFloat(emp.gross || 0) || Math.max(0, earned - deductions);
 }
 
 function formatINR(n) {

@@ -25,22 +25,20 @@ const calcPayroll = (emp) => {
   const earnedBasic = rawEarned > 0 ? rawEarned : basic;
   const earned = rawEarned > 0 ? rawEarned : (earnedBasic + ot + bonus + stipend + ta || basic);
 
+  // Deductions ONLY include Attendance Cuts, Leave Cut, Advance Salary
   const attendanceCuts = parseFloat(emp.attendanceCuts || 0);
   const leaveCut = parseFloat(emp.leaveCut || 0);
   const advance = parseFloat(emp.advance || 0);
-  const otherDeductions = parseFloat(emp.unpaid || 0) + parseFloat(emp.underworked || 0) + parseFloat(emp.liability || 0);
-  const calculatedDeductions = attendanceCuts + leaveCut + advance + otherDeductions;
+  const calculatedDeductions = attendanceCuts + leaveCut + advance;
 
-  const rawDeductions = parseFloat(emp.totalDeductions !== undefined && emp.totalDeductions !== null ? emp.totalDeductions : (emp.deduction || 0));
-  const totalDeductions = rawDeductions > 0 ? rawDeductions : calculatedDeductions;
+  const totalDeductions = (attendanceCuts > 0 || leaveCut > 0 || advance > 0)
+    ? calculatedDeductions
+    : (parseFloat(emp.totalDeductions || 0) || calculatedDeductions);
 
-  const hasRawGross = emp.gross !== undefined && emp.gross !== null && emp.gross !== '' && !isNaN(parseFloat(emp.gross)) && parseFloat(emp.gross) > 0;
-  const hasRawNet = emp.net !== undefined && emp.net !== null && emp.net !== '' && !isNaN(parseFloat(emp.net)) && parseFloat(emp.net) > 0;
-
-  // Rule: net pay is = gross. Available in CSV sheet or calculated as Earned - Deductions
+  // Gross Salary = Total earned - Total deduction
   const calculatedGross = Math.max(0, earned - totalDeductions);
-  const gross = hasRawGross ? parseFloat(emp.gross) : (hasRawNet ? parseFloat(emp.net) : calculatedGross);
-  const net = hasRawNet ? parseFloat(emp.net) : gross;
+  const gross = earned > 0 ? calculatedGross : (parseFloat(emp.gross || 0) || parseFloat(emp.net || 0) || calculatedGross);
+  const net = gross;
 
   return { earned, gross, totalDeductions, net };
 };
