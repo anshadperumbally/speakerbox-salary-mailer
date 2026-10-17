@@ -45,16 +45,27 @@ function toast(msg, type = 'info') {
   setTimeout(() => { el.classList.add('toast-hide'); setTimeout(() => el.remove(), 300); }, 4000);
 }
 
-// ─── Employees ───────────────────────────────────────────────────
 async function fetchEmployees() {
-  // If we have data in memory (from CSV), don't overwrite it from the server
-  // unless we're performing a fresh load.
   if (allEmployees.length > 0) return allEmployees;
+  try {
+    const saved = localStorage.getItem('allEmployees');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        allEmployees = parsed;
+        return allEmployees;
+      }
+    }
+  } catch {}
   allEmployees = await api('/api/employees');
   return allEmployees;
 }
 
 function calcNet(emp) {
+  if (!emp) return 0;
+  const rawNet = parseFloat(emp.net || 0);
+  const rawGross = parseFloat(emp.gross || 0);
+
   const basic = parseFloat(emp.basic || 0);
   const ot = parseFloat(emp.ot || 0);
   const bonus = parseFloat(emp.bonus || 0);
@@ -76,7 +87,10 @@ function calcNet(emp) {
   const advance = parseFloat(emp.advance || 0);
   const totalDeductions = attendanceCuts + leaveCut + advance;
 
-  return Math.max(0, earned - totalDeductions);
+  if (earned > 0) {
+    return Math.max(0, earned - totalDeductions);
+  }
+  return rawNet > 0 ? rawNet : (rawGross > 0 ? rawGross : Math.max(0, earned - totalDeductions));
 }
 
 function formatINR(n) {
@@ -245,6 +259,7 @@ async function saveEmployee() {
   } else {
     allEmployees.push(body);
   }
+  try { localStorage.setItem('allEmployees', JSON.stringify(allEmployees)); } catch {}
   
   toast(editId ? 'Employee updated in memory!' : 'Employee added to memory!', 'success');
   closeEmployeeModal();
@@ -255,6 +270,7 @@ async function saveEmployee() {
 async function deleteEmployee(id) {
   if (!confirm('Remove this employee from the list?')) return;
   allEmployees = allEmployees.filter(e => e.id !== id);
+  try { localStorage.setItem('allEmployees', JSON.stringify(allEmployees)); } catch {}
   toast('Employee removed', 'info');
   filterEmployees();
   if (currentPage === 'dashboard') loadDashboard();
@@ -272,6 +288,7 @@ async function importCSV(input) {
   const data = await res.json();
   if (data.success) {
     allEmployees = data.employees; // Store globally in-memory
+    try { localStorage.setItem('allEmployees', JSON.stringify(allEmployees)); } catch {}
     toast(`✅ Loaded ${allEmployees.length} employees from CSV. You can now cross-check and send.`, 'success');
     renderEmployeesTable();
     if (currentPage === 'dashboard') loadDashboard();
@@ -339,7 +356,7 @@ async function loadDashboard() {
       <div class="stat-icon yellow">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
       </div>
-      <div><div class="stat-value">${formatINR(totalNet)}</div><div class="stat-label">Total Payroll/mo</div></div>
+      <div><div class="stat-value">${formatINR(totalNet)}</div><div class="stat-label">Total Net Salary</div></div>
     </div>`;
 
   // Recent Activity
