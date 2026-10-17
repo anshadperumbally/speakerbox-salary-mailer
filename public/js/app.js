@@ -55,6 +55,11 @@ async function fetchEmployees() {
 }
 
 function calcNet(emp) {
+  const rawNet = parseFloat(emp.net || 0);
+  if (rawNet > 0) return rawNet;
+  const rawGross = parseFloat(emp.gross || 0);
+  if (rawGross > 0) return rawGross;
+
   const base = parseFloat(emp.earned) || parseFloat(emp.basic || 0);
   const ot = parseFloat(emp.ot || 0);
   const bonus = parseFloat(emp.bonus || 0);
@@ -70,7 +75,7 @@ function calcNet(emp) {
     parseFloat(emp.underworked || 0) +
     parseFloat(emp.liability || 0)
   );
-  return earned - deductions;
+  return Math.max(0, earned - deductions);
 }
 
 function formatINR(n) {

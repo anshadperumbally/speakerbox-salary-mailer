@@ -17,61 +17,94 @@ const writeEmployees = (data) => {
   fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
 };
 
-// Helper: strip ₹/₹/? symbols + commas and parse float
+// Helper: flexible key finder in CSV row (case-insensitive, whitespace-trimmed)
+const getVal = (row, ...keys) => {
+  if (!row || typeof row !== 'object') return undefined;
+  const rowKeys = Object.keys(row);
+  for (const key of keys) {
+    const target = key.toLowerCase().replace(/[\s_-]+/g, '');
+    for (const rk of rowKeys) {
+      const cleanRk = rk.trim().toLowerCase().replace(/[\s_-]+/g, '');
+      if (cleanRk === target) {
+        return row[rk];
+      }
+    }
+  }
+  return undefined;
+};
+
+// Helper: strip ₹/Rs/INR/? symbols + commas + /- and parse float
 const parseAmount = (val) => {
-  if (!val) return 0;
-  const cleaned = String(val).replace(/[₹?,\s]/g, '').trim();
-  return parseFloat(cleaned) || 0;
+  if (val === undefined || val === null || val === '') return 0;
+  if (typeof val === 'number') return isNaN(val) ? 0 : val;
+  const cleaned = String(val)
+    .replace(/(?:Rs\.?|INR|₹|\?|\/-)/gi, '')
+    .replace(/,/g, '')
+    .trim();
+  const num = parseFloat(cleaned);
+  return isNaN(num) ? 0 : num;
+};
+
+const parseNum = (val) => {
+  if (val === undefined || val === null || val === '') return 0;
+  const num = parseFloat(val);
+  return isNaN(num) ? 0 : num;
 };
 
 // Helper: map CSV row → internal employee object
 const csvRowToEmployee = (row, index, existingCount) => {
-  const idValue = row['Employee No'] || row['Id'] || row['id'] || row['ID'];
+  const idValue = getVal(row, 'Employee No', 'Employee ID', 'Id', 'id', 'ID', 'Emp ID', 'Emp No');
   const id = String(idValue || `EMP${String(existingCount + index + 1).padStart(3, '0')}`).trim();
 
-  const basic = parseAmount(row['Basic'] || row['Basic Pay']);
-  const earnedBasic = parseAmount(row['earned'] || row['Earned Salary']) || basic;
-  const ot = parseAmount(row['OT']);
-  const bonus = parseAmount(row['Bonus']);
-  const stipend = parseAmount(row['Stipend'] || row['stipend']);
-  const ta = parseAmount(row['TA'] || row['ta']);
+  const basic = parseAmount(getVal(row, 'Basic Pay', 'Basic', 'basic', 'Basic Salary'));
+  const rawEarned = parseAmount(getVal(row, 'Earned Salary', 'Earned', 'earned', 'Earned Basic'));
+  const ot = parseAmount(getVal(row, 'OT', 'ot', 'Overtime', 'Over Time'));
+  const bonus = parseAmount(getVal(row, 'Bonus', 'bonus'));
+  const stipend = parseAmount(getVal(row, 'Stipend', 'stipend'));
+  const ta = parseAmount(getVal(row, 'TA', 'ta', 'Travel Allowance'));
 
-  const attendanceCuts = parseAmount(row['Attendance Cuts']);
-  const leaveCut = parseAmount(row['Leave Cut']);
-  const advance = parseAmount(row['Advance'] || row['Advance Salary']);
-  const unpaid = parseAmount(row['unpaid'] || row['Unpaid']);
-  const underworked = parseAmount(row['underworked'] || row['Underworked']);
-  const liability = parseAmount(row['liability'] || row['Liability']);
+  const earnedBasic = rawEarned > 0 ? rawEarned : basic;
+  const calculatedEarned = rawEarned > 0 ? rawEarned : (earnedBasic + ot + bonus + stipend + ta || basic);
+  const earned = calculatedEarned;
+
+  const attendanceCuts = parseAmount(getVal(row, 'Attendance Cuts', 'Attendance Cut', 'attendance cuts', 'Attendance'));
+  const leaveCut = parseAmount(getVal(row, 'Leave Cut', 'Leave Cuts', 'leave cut', 'Leave'));
+  const advance = parseAmount(getVal(row, 'Advance Salary', 'Advance', 'advance', 'Advance Pay'));
+  const unpaid = parseAmount(getVal(row, 'unpaid', 'Unpaid', 'Unpaid Days'));
+  const underworked = parseAmount(getVal(row, 'underworked', 'Underworked'));
+  const liability = parseAmount(getVal(row, 'liability', 'Liability'));
 
   const calculatedDeductions = attendanceCuts + leaveCut + advance + unpaid + underworked + liability;
-  const totalDeductions = parseAmount(row['Total'] || row['deduction']) || calculatedDeductions;
+  const rawDeductions = parseAmount(getVal(row, 'Total', 'Total Deduction', 'Total Deductions', 'deduction', 'deductions', 'Deduction'));
+  const totalDeductions = rawDeductions > 0 ? rawDeductions : calculatedDeductions;
 
-  const calculatedGross = earnedBasic + ot + bonus + stipend + ta;
-  const rawGross = parseAmount(row['gross'] || row['Gross Salary']);
-  const gross = rawGross > 0 ? Math.max(rawGross, calculatedGross) : calculatedGross;
+  // Gross Salary & Net Pay
+  // User requirement: net pay is = gross. All things available in csv sheet.
+  const rawGross = parseAmount(getVal(row, 'Gross Salary', 'Gross Pay', 'Gross', 'gross'));
+  const rawNet = parseAmount(getVal(row, 'Net Salary', 'Net Pay', 'Net', 'net', 'Net Amount'));
 
-  const calculatedNet = gross - totalDeductions;
-  const rawNet = parseAmount(row['Net Salary'] || row['Net'] || row['net']);
-  const net = (rawNet > 0 && Math.abs(rawNet - calculatedNet) < 0.01) ? rawNet : calculatedNet;
+  const calculatedGross = Math.max(0, earned - totalDeductions);
+  const gross = rawGross > 0 ? rawGross : (rawNet > 0 ? rawNet : calculatedGross);
+  const net = rawNet > 0 ? rawNet : gross;
 
   return {
-    email:             (row['Email'] || '').trim(),
+    email:             (getVal(row, 'Email', 'email', 'E-mail', 'Email ID') || '').trim(),
     id,
-    name:              (row['Name'] || '').trim(),
-    position:          (row['Designation'] || '').trim(),
-    location:          (row['Location'] || '').trim(),
+    name:              (getVal(row, 'Name', 'name', 'Employee Name') || '').trim(),
+    position:          (getVal(row, 'Designation', 'Position', 'position', 'Role') || '').trim(),
+    location:          (getVal(row, 'Location', 'location', 'City', 'Branch') || '').trim(),
     // Attendance
-    balanceLeaves:     parseFloat(row['Balance Leaves'] || 0),
-    restrictedHoliday: parseFloat(row['worked on Resticted holiday'] || 0),
-    presentDays:       parseFloat(row['Present Days'] || 0),
-    paidLeave:         parseFloat(row['Paid Leave'] || 0),
-    paidDays:          parseFloat(row['Paid Days'] || 0),
-    leaveBalance:      parseFloat(row['Leave Balance'] || 0),
-    comments:          (row['Comments'] || '').trim(),
+    balanceLeaves:     parseNum(getVal(row, 'Balance Leaves', 'Leave Balance', 'Leaves', 'leaves')),
+    restrictedHoliday: parseNum(getVal(row, 'worked on Resticted holiday', 'worked on Restricted holiday', 'Restricted Holiday', 'Restricted Holidays')),
+    presentDays:       parseNum(getVal(row, 'Present Days', 'Present', 'present')),
+    paidLeave:         parseNum(getVal(row, 'Paid Leave', 'Paid Leaves')),
+    paidDays:          parseNum(getVal(row, 'Paid Days', 'Paid days', 'Workingdays', 'Working Days')),
+    leaveBalance:      parseNum(getVal(row, 'Leave Balance', 'Balance Leaves', 'Leaves')),
+    comments:          (getVal(row, 'Comments', 'Comment', 'comments') || '').trim(),
     
     // Earnings
     basic,
-    earned:            earnedBasic, 
+    earned, 
     ot,
     bonus,
     stipend,
@@ -90,10 +123,10 @@ const csvRowToEmployee = (row, index, existingCount) => {
     net,
     
     // Standard implicit
-    department:        (row['Department'] || '').trim(),
-    month:             (row['Month'] || '').trim(),
-    year:              (row['Year'] || '').trim(),
-    via:               (row['via'] || 'Bank').trim()
+    department:        (getVal(row, 'Department', 'department', 'Dept') || '').trim(),
+    month:             (getVal(row, 'Month', 'month') || '').trim(),
+    year:              (getVal(row, 'Year', 'year') || '').trim(),
+    via:               (getVal(row, 'via', 'Via', 'Paid Via', 'Payment Mode') || 'Bank').trim()
   };
 };
 
@@ -106,13 +139,13 @@ router.get('/', (req, res) => {
 router.post('/', (req, res) => {
   const employees = readEmployees();
   const basic = parseAmount(req.body.basic);
-  const earned = parseAmount(req.body.earned) || basic;
+  const rawEarned = parseAmount(req.body.earned);
   const ot = parseAmount(req.body.ot);
   const bonus = parseAmount(req.body.bonus);
   const stipend = parseAmount(req.body.stipend);
   const ta = parseAmount(req.body.ta);
-  const calculatedGross = earned + ot + bonus + stipend + ta;
-  const gross = parseAmount(req.body.gross) || calculatedGross;
+  const earnedBasic = rawEarned > 0 ? rawEarned : basic;
+  const earned = rawEarned > 0 ? rawEarned : (earnedBasic + ot + bonus + stipend + ta || basic);
 
   const attendanceCuts = parseAmount(req.body.attendanceCuts);
   const leaveCut = parseAmount(req.body.leaveCut);
@@ -121,9 +154,14 @@ router.post('/', (req, res) => {
   const underworked = parseAmount(req.body.underworked);
   const liability = parseAmount(req.body.liability);
   const calculatedDeductions = attendanceCuts + leaveCut + advance + unpaid + underworked + liability;
-  const deduction = parseAmount(req.body.deduction || req.body.totalDeductions) || calculatedDeductions;
+  const rawDeductions = parseAmount(req.body.deduction || req.body.totalDeductions);
+  const totalDeductions = rawDeductions > 0 ? rawDeductions : calculatedDeductions;
 
-  const net = parseAmount(req.body.net) || (gross - deduction);
+  const rawGross = parseAmount(req.body.gross);
+  const rawNet = parseAmount(req.body.net);
+  const calculatedGross = Math.max(0, earned - totalDeductions);
+  const gross = rawGross > 0 ? rawGross : (rawNet > 0 ? rawNet : calculatedGross);
+  const net = rawNet > 0 ? rawNet : gross;
 
   const emp = {
     id:          req.body.id || `EMP${String(employees.length + 1).padStart(3, '0')}`,
@@ -154,8 +192,8 @@ router.post('/', (req, res) => {
     unpaid,
     underworked,
     liability,
-    deduction,
-    totalDeductions: deduction,
+    deduction: totalDeductions,
+    totalDeductions,
     net,
     via:         req.body.via || 'Bank',
   };
@@ -190,7 +228,8 @@ router.post('/import', upload.single('csv'), (req, res) => {
   fs.createReadStream(req.file.path)
     .pipe(csv())
     .on('data', (row) => {
-      if (!row['Name'] && !row['name']) return;
+      const name = getVal(row, 'Name', 'name', 'Employee Name');
+      if (!name) return;
       newEmps.push(csvRowToEmployee(row, newEmps.length, 0));
     })
     .on('end', () => {

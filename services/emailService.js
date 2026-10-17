@@ -15,40 +15,32 @@ const fmt = (n) => {
 
 // ─── Calculate derived fields ─────────────────────────────────────
 const calcPayroll = (emp) => {
-  // Base earned amount (from attendance/paid days, or basic pay)
   const basic = parseFloat(emp.basic || 0);
-  const earnedBasic = (emp.earned !== undefined && emp.earned !== null && !isNaN(parseFloat(emp.earned)) && parseFloat(emp.earned) > 0)
-    ? parseFloat(emp.earned)
-    : basic;
-
   const ot = parseFloat(emp.ot || 0);
   const bonus = parseFloat(emp.bonus || 0);
   const stipend = parseFloat(emp.stipend || 0);
   const ta = parseFloat(emp.ta || 0);
 
-  // 1. Total Earned / Gross Salary before deductions (includes Basic/Earned + OT + Bonus)
-  const calculatedEarned = earnedBasic + ot + bonus + stipend + ta;
-  const earned = calculatedEarned;
-  const gross = (emp.gross !== undefined && emp.gross !== null && !isNaN(parseFloat(emp.gross)) && parseFloat(emp.gross) > 0)
-    ? Math.max(parseFloat(emp.gross), calculatedEarned)
-    : calculatedEarned;
+  const rawEarned = parseFloat(emp.earned || 0);
+  const earnedBasic = rawEarned > 0 ? rawEarned : basic;
+  const earned = rawEarned > 0 ? rawEarned : (earnedBasic + ot + bonus + stipend + ta || basic);
 
-  // 2. Total Deductions = Attendance Cuts + Leave Cut + Advance Salary + Other Deductions
   const attendanceCuts = parseFloat(emp.attendanceCuts || 0);
   const leaveCut = parseFloat(emp.leaveCut || 0);
   const advance = parseFloat(emp.advance || 0);
   const otherDeductions = parseFloat(emp.unpaid || 0) + parseFloat(emp.underworked || 0) + parseFloat(emp.liability || 0);
   const calculatedDeductions = attendanceCuts + leaveCut + advance + otherDeductions;
 
-  const totalDeductions = (emp.totalDeductions !== undefined && emp.totalDeductions !== null && !isNaN(parseFloat(emp.totalDeductions)) && parseFloat(emp.totalDeductions) > 0)
-    ? parseFloat(emp.totalDeductions)
-    : calculatedDeductions;
+  const rawDeductions = parseFloat(emp.totalDeductions !== undefined && emp.totalDeductions !== null ? emp.totalDeductions : (emp.deduction || 0));
+  const totalDeductions = rawDeductions > 0 ? rawDeductions : calculatedDeductions;
 
-  // 3. Net Salary = Gross Salary - Total Deductions
-  const calculatedNet = gross - totalDeductions;
-  const net = (emp.net !== undefined && emp.net !== null && !isNaN(parseFloat(emp.net)) && parseFloat(emp.net) > 0 && Math.abs(parseFloat(emp.net) - calculatedNet) < 0.01)
-    ? parseFloat(emp.net)
-    : calculatedNet;
+  const hasRawGross = emp.gross !== undefined && emp.gross !== null && emp.gross !== '' && !isNaN(parseFloat(emp.gross)) && parseFloat(emp.gross) > 0;
+  const hasRawNet = emp.net !== undefined && emp.net !== null && emp.net !== '' && !isNaN(parseFloat(emp.net)) && parseFloat(emp.net) > 0;
+
+  // Rule: net pay is = gross. Available in CSV sheet or calculated as Earned - Deductions
+  const calculatedGross = Math.max(0, earned - totalDeductions);
+  const gross = hasRawGross ? parseFloat(emp.gross) : (hasRawNet ? parseFloat(emp.net) : calculatedGross);
+  const net = hasRawNet ? parseFloat(emp.net) : gross;
 
   return { earned, gross, totalDeductions, net };
 };
