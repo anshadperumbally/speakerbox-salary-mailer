@@ -63,24 +63,22 @@ const csvRowToEmployee = (row, index, existingCount) => {
   const stipend = parseAmount(getVal(row, 'Stipend', 'stipend'));
   const ta = parseAmount(getVal(row, 'TA', 'ta', 'Travel Allowance'));
 
-  const earnedBasic = rawEarned > 0 ? rawEarned : basic;
-  const calculatedEarned = rawEarned > 0 ? rawEarned : (earnedBasic + ot + bonus + stipend + ta || basic);
-  const earned = calculatedEarned;
+  let baseEarned = rawEarned > 0 ? rawEarned : basic;
+  if (rawEarned > 0 && (ot > 0 || bonus > 0 || stipend > 0 || ta > 0)) {
+    if (Math.abs(rawEarned - (basic + ot + bonus + stipend + ta)) < 0.01) {
+      baseEarned = basic;
+    }
+  }
+  const earned = baseEarned + ot + bonus + stipend + ta;
 
   // Deductions ONLY include Attendance Cuts, Leave Cut, Advance Salary
   const attendanceCuts = parseAmount(getVal(row, 'Attendance Cuts', 'Attendance Cut', 'attendance cuts', 'Attendance'));
   const leaveCut = parseAmount(getVal(row, 'Leave Cut', 'Leave Cuts', 'leave cut', 'Leave'));
   const advance = parseAmount(getVal(row, 'Advance Salary', 'Advance', 'advance', 'Advance Pay'));
-
-  const calculatedDeductions = attendanceCuts + leaveCut + advance;
-  const rawDeductions = parseAmount(getVal(row, 'Total Deduction', 'Total Deductions', 'Deduction', 'Deductions'));
-  const totalDeductions = (attendanceCuts > 0 || leaveCut > 0 || advance > 0)
-    ? calculatedDeductions
-    : (rawDeductions > 0 ? rawDeductions : calculatedDeductions);
+  const totalDeductions = attendanceCuts + leaveCut + advance;
 
   // Gross Salary = Total earned - Total deduction
-  const calculatedGross = Math.max(0, earned - totalDeductions);
-  const gross = earned > 0 ? calculatedGross : (parseAmount(getVal(row, 'Gross Salary', 'Gross Pay', 'Gross', 'gross')) || calculatedGross);
+  const gross = Math.max(0, earned - totalDeductions);
   const net = gross;
 
   return {
@@ -140,22 +138,22 @@ router.post('/', (req, res) => {
   const bonus = parseAmount(req.body.bonus);
   const stipend = parseAmount(req.body.stipend);
   const ta = parseAmount(req.body.ta);
-  const earnedBasic = rawEarned > 0 ? rawEarned : basic;
-  const earned = rawEarned > 0 ? rawEarned : (earnedBasic + ot + bonus + stipend + ta || basic);
+  let baseEarned = rawEarned > 0 ? rawEarned : basic;
+  if (rawEarned > 0 && (ot > 0 || bonus > 0 || stipend > 0 || ta > 0)) {
+    if (Math.abs(rawEarned - (basic + ot + bonus + stipend + ta)) < 0.01) {
+      baseEarned = basic;
+    }
+  }
+  const earned = baseEarned + ot + bonus + stipend + ta;
 
   // Deductions ONLY include Attendance Cuts, Leave Cut, Advance Salary
   const attendanceCuts = parseAmount(req.body.attendanceCuts);
   const leaveCut = parseAmount(req.body.leaveCut);
   const advance = parseAmount(req.body.advance);
-  const calculatedDeductions = attendanceCuts + leaveCut + advance;
-  const rawDeductions = parseAmount(req.body.deduction || req.body.totalDeductions);
-  const totalDeductions = (attendanceCuts > 0 || leaveCut > 0 || advance > 0)
-    ? calculatedDeductions
-    : (rawDeductions > 0 ? rawDeductions : calculatedDeductions);
+  const totalDeductions = attendanceCuts + leaveCut + advance;
 
   // Gross Salary = Total earned - Total deduction
-  const calculatedGross = Math.max(0, earned - totalDeductions);
-  const gross = earned > 0 ? calculatedGross : (parseAmount(req.body.gross) || calculatedGross);
+  const gross = Math.max(0, earned - totalDeductions);
   const net = gross;
 
   const emp = {

@@ -20,24 +20,29 @@ const calcPayroll = (emp) => {
   const bonus = parseFloat(emp.bonus || 0);
   const stipend = parseFloat(emp.stipend || 0);
   const ta = parseFloat(emp.ta || 0);
-
   const rawEarned = parseFloat(emp.earned || 0);
-  const earnedBasic = rawEarned > 0 ? rawEarned : basic;
-  const earned = rawEarned > 0 ? rawEarned : (earnedBasic + ot + bonus + stipend + ta || basic);
+
+  // Base earned is either rawEarned (if prorated) or basic
+  let baseEarned = rawEarned > 0 ? rawEarned : basic;
+  if (rawEarned > 0 && (ot > 0 || bonus > 0 || stipend > 0 || ta > 0)) {
+    if (Math.abs(rawEarned - (basic + ot + bonus + stipend + ta)) < 0.01) {
+      baseEarned = basic;
+    }
+  }
+
+  // Total Earned Salary = Base Earned + OT + Bonus + Stipend + TA
+  const earned = baseEarned + ot + bonus + stipend + ta;
 
   // Deductions ONLY include Attendance Cuts, Leave Cut, Advance Salary
   const attendanceCuts = parseFloat(emp.attendanceCuts || 0);
   const leaveCut = parseFloat(emp.leaveCut || 0);
   const advance = parseFloat(emp.advance || 0);
-  const calculatedDeductions = attendanceCuts + leaveCut + advance;
+  const totalDeductions = attendanceCuts + leaveCut + advance;
 
-  const totalDeductions = (attendanceCuts > 0 || leaveCut > 0 || advance > 0)
-    ? calculatedDeductions
-    : (parseFloat(emp.totalDeductions || 0) || calculatedDeductions);
+  // Gross Salary = Total Earned Salary - Total Deduction
+  const gross = Math.max(0, earned - totalDeductions);
 
-  // Gross Salary = Total earned - Total deduction
-  const calculatedGross = Math.max(0, earned - totalDeductions);
-  const gross = earned > 0 ? calculatedGross : (parseFloat(emp.gross || 0) || parseFloat(emp.net || 0) || calculatedGross);
+  // Gross salary and Net salary will be same
   const net = gross;
 
   return { earned, gross, totalDeductions, net };

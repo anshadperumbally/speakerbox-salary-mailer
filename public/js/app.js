@@ -55,25 +55,28 @@ async function fetchEmployees() {
 }
 
 function calcNet(emp) {
-  const base = parseFloat(emp.earned) || parseFloat(emp.basic || 0);
+  const basic = parseFloat(emp.basic || 0);
   const ot = parseFloat(emp.ot || 0);
   const bonus = parseFloat(emp.bonus || 0);
   const stipend = parseFloat(emp.stipend || 0);
   const ta = parseFloat(emp.ta || 0);
-  const earned = base + ot + bonus + stipend + ta;
+  const rawEarned = parseFloat(emp.earned || 0);
+
+  let baseEarned = rawEarned > 0 ? rawEarned : basic;
+  if (rawEarned > 0 && (ot > 0 || bonus > 0 || stipend > 0 || ta > 0)) {
+    if (Math.abs(rawEarned - (basic + ot + bonus + stipend + ta)) < 0.01) {
+      baseEarned = basic;
+    }
+  }
+  const earned = baseEarned + ot + bonus + stipend + ta;
 
   // Deductions ONLY include Attendance Cuts, Leave Cut, Advance Salary
   const attendanceCuts = parseFloat(emp.attendanceCuts || 0);
   const leaveCut = parseFloat(emp.leaveCut || 0);
   const advance = parseFloat(emp.advance || 0);
-  const deductions = (attendanceCuts > 0 || leaveCut > 0 || advance > 0)
-    ? (attendanceCuts + leaveCut + advance)
-    : (parseFloat(emp.totalDeductions || 0));
+  const totalDeductions = attendanceCuts + leaveCut + advance;
 
-  if (earned > 0) {
-    return Math.max(0, earned - deductions);
-  }
-  return parseFloat(emp.net || 0) || parseFloat(emp.gross || 0) || Math.max(0, earned - deductions);
+  return Math.max(0, earned - totalDeductions);
 }
 
 function formatINR(n) {
