@@ -63,34 +63,20 @@ async function fetchEmployees() {
 
 function calcNet(emp) {
   if (!emp) return 0;
-  const rawNet = parseFloat(emp.net || 0);
-  const rawGross = parseFloat(emp.gross || 0);
-
   const basic = parseFloat(emp.basic || 0);
-  const ot = parseFloat(emp.ot || 0);
-  const bonus = parseFloat(emp.bonus || 0);
-  const stipend = parseFloat(emp.stipend || 0);
-  const ta = parseFloat(emp.ta || 0);
   const rawEarned = parseFloat(emp.earned || 0);
+  const earned = rawEarned > 0 ? rawEarned : basic;
+  const ot = parseFloat(emp.ot || 0);
+  const payout = parseFloat(emp.payout || emp.bonus || emp.stipend || emp.ta || 0);
+  const gross = parseFloat(emp.gross || 0) || (earned + ot + payout);
 
-  let baseEarned = rawEarned > 0 ? rawEarned : basic;
-  if (rawEarned > 0 && (ot > 0 || bonus > 0 || stipend > 0 || ta > 0)) {
-    if (Math.abs(rawEarned - (basic + ot + bonus + stipend + ta)) < 0.01) {
-      baseEarned = basic;
-    }
-  }
-  const earned = baseEarned + ot + bonus + stipend + ta;
-
-  // Deductions ONLY include Attendance Cuts, Leave Cut, Advance Salary
   const attendanceCuts = parseFloat(emp.attendanceCuts || 0);
-  const leaveCut = parseFloat(emp.leaveCut || 0);
+  const lwop = parseFloat(emp.lwop || emp.leaveCut || 0);
   const advance = parseFloat(emp.advance || 0);
-  const totalDeductions = attendanceCuts + leaveCut + advance;
+  const totalDeductions = parseFloat(emp.totalDeductions || emp.total || emp.deduction || 0) || (attendanceCuts + lwop + advance);
 
-  if (earned > 0) {
-    return Math.max(0, earned - totalDeductions);
-  }
-  return rawNet > 0 ? rawNet : (rawGross > 0 ? rawGross : Math.max(0, earned - totalDeductions));
+  const rawNet = parseFloat(emp.net || 0);
+  return rawNet > 0 ? rawNet : Math.max(0, gross - totalDeductions);
 }
 
 function formatINR(n) {
@@ -108,8 +94,13 @@ function filterEmployees() {
   const q = (document.getElementById('emp-search')?.value || '').toLowerCase();
   const dept = document.getElementById('dept-filter')?.value || '';
   let filtered = allEmployees.filter(e => {
-    const matchQ = !q || e.name.toLowerCase().includes(q) || e.id.toLowerCase().includes(q) || (e.department || '').toLowerCase().includes(q);
-    const matchD = !dept || e.department === dept;
+    const matchQ = !q || 
+      (e.name || '').toLowerCase().includes(q) || 
+      (e.id || '').toLowerCase().includes(q) || 
+      (e.position || e.designation || '').toLowerCase().includes(q) || 
+      (e.location || '').toLowerCase().includes(q) || 
+      (e.department || '').toLowerCase().includes(q);
+    const matchD = !dept || e.department === dept || e.location === dept;
     return matchQ && matchD;
   });
   const tbody = document.getElementById('employees-tbody');
@@ -125,30 +116,46 @@ function filterEmployees() {
   empty.style.display = 'none';
   table.style.display = 'table';
 
-  tbody.innerHTML = filtered.map(emp => `
-    <tr>
-      <td><input type="checkbox" class="emp-checkbox" value="${emp.id}" onchange="updateSelectionUI()"/></td>
-      <td><span class="emp-id-badge">${emp.id}</span></td>
-      <td class="emp-name">${emp.name}</td>
-      <td>${emp.department || emp.position || '—'}</td>
-      <td style="color:var(--text-secondary)">${emp.position || '—'}</td>
-      <td class="net-pay">${formatINR(emp.net || calcNet(emp))}</td>
-      <td style="color:var(--text-secondary);font-size:11px">${emp.email}</td>
-      <td style="color:var(--text-muted);font-size:11px">${emp.month || '—'} ${emp.year || ''}</td>
-      <td>
-        <div class="action-btns">
-          <button class="btn-icon" onclick="previewPDF('${emp.id}')" title="Preview PDF">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          </button>
-          <button class="btn-icon edit" onclick="openEmployeeModal('${emp.id}')" title="Edit">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-          </button>
-          <button class="btn-icon delete" onclick="deleteEmployee('${emp.id}')" title="Delete">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
-          </button>
-        </div>
-      </td>
-    </tr>`).join('');
+  tbody.innerHTML = filtered.map(emp => {
+    const basic = parseFloat(emp.basic || 0);
+    const earned = parseFloat(emp.earned || 0) || basic;
+    const ot = parseFloat(emp.ot || 0);
+    const payout = parseFloat(emp.payout || emp.bonus || 0);
+    const gross = parseFloat(emp.gross || 0) || (earned + ot + payout);
+    const deductions = parseFloat(emp.totalDeductions || emp.total || 0) || (parseFloat(emp.attendanceCuts || 0) + parseFloat(emp.lwop || emp.leaveCut || 0) + parseFloat(emp.advance || 0));
+    const net = parseFloat(emp.net || 0) || Math.max(0, gross - deductions);
+
+    const emailDisplay = emp.email 
+      ? `<span style="color:var(--text-secondary);font-size:11px">${emp.email}</span>` 
+      : `<span style="color:#f59e0b;font-size:11px;font-style:italic">No email</span>`;
+
+    return `
+      <tr>
+        <td><input type="checkbox" class="emp-checkbox" value="${emp.id}" onchange="updateSelectionUI()"/></td>
+        <td><span class="emp-id-badge">${emp.id}</span></td>
+        <td class="emp-name">${emp.name}</td>
+        <td style="color:var(--text-secondary)">${emp.position || emp.designation || '—'}</td>
+        <td style="color:var(--text-secondary)">${emp.location || '—'}</td>
+        <td style="color:var(--text-secondary)">${formatINR(earned)}</td>
+        <td style="color:var(--text-primary);font-weight:600">${formatINR(gross)}</td>
+        <td style="color:#ef4444">${formatINR(deductions)}</td>
+        <td class="net-pay">${formatINR(net)}</td>
+        <td>${emailDisplay}</td>
+        <td>
+          <div class="action-btns">
+            <button class="btn-icon" onclick="previewPDF('${emp.id}')" title="Preview PDF">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            </button>
+            <button class="btn-icon edit" onclick="openEmployeeModal('${emp.id}')" title="Edit">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+            <button class="btn-icon delete" onclick="deleteEmployee('${emp.id}')" title="Delete">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+            </button>
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
   updateSelectionUI();
 }
 
@@ -176,17 +183,18 @@ async function deleteSelectedEmployees() {
   if (!confirm(`Are you sure you want to delete ${checked.length} selected employees from the list?`)) return;
   
   allEmployees = allEmployees.filter(e => !checked.includes(e.id));
+  try { localStorage.setItem('allEmployees', JSON.stringify(allEmployees)); } catch {}
   toast(`Removed ${checked.length} employees`, 'info');
   filterEmployees();
   if (currentPage === 'dashboard') loadDashboard();
 }
 
 function populateDeptFilter(selectId) {
-  const depts = [...new Set(allEmployees.map(e => e.department).filter(Boolean))];
+  const depts = [...new Set(allEmployees.map(e => e.department || e.location).filter(Boolean))];
   const sel = document.getElementById(selectId);
   if (!sel) return;
   const current = sel.value;
-  sel.innerHTML = `<option value="">All Departments</option>` + depts.map(d => `<option value="${d}">${d}</option>`).join('');
+  sel.innerHTML = `<option value="">All Locations / Depts</option>` + depts.map(d => `<option value="${d}">${d}</option>`).join('');
   sel.value = current;
 }
 
@@ -194,13 +202,20 @@ function populateDeptFilter(selectId) {
 function openEmployeeModal(id = null) {
   const modal = document.getElementById('employee-modal');
   modal.style.display = 'flex';
-  const fields = ['id','name','email','joining','dept','pos','basic','bonus','ot','hra','da','conv','med','pf','tds','other'];
+  const fields = [
+    'id','name','pos','location','email','via',
+    'present-days','paid-days','paid-leave','rh','bal-leaves','leave-bal','comments',
+    'basic','earned','ot','payout','gross',
+    'attendance-cuts','lwop','advance','total-deductions','net'
+  ];
   fields.forEach(f => {
     const el = document.getElementById(`emp-${f}`);
     if (el) el.value = '';
   });
   document.getElementById('emp-edit-id').value = '';
   document.getElementById('modal-title').textContent = 'Add Employee';
+  const viaEl = document.getElementById('emp-via');
+  if (viaEl) viaEl.value = 'Bank';
 
   if (id) {
     const emp = allEmployees.find(e => e.id === id);
@@ -208,21 +223,31 @@ function openEmployeeModal(id = null) {
     document.getElementById('modal-title').textContent = 'Edit Employee';
     document.getElementById('emp-edit-id').value = emp.id;
     document.getElementById('emp-id').value = emp.id;
-    document.getElementById('emp-name').value = emp.name;
-    document.getElementById('emp-email').value = emp.email;
-    document.getElementById('emp-joining').value = emp.joiningDate || '';
-    document.getElementById('emp-dept').value = emp.department || '';
-    document.getElementById('emp-pos').value = emp.position || '';
-    document.getElementById('emp-basic').value = emp.basic || '';
-    if (document.getElementById('emp-bonus')) document.getElementById('emp-bonus').value = emp.bonus || '';
-    if (document.getElementById('emp-ot')) document.getElementById('emp-ot').value = emp.ot || '';
-    document.getElementById('emp-hra').value = emp.hra || '';
-    document.getElementById('emp-da').value = emp.da || '';
-    document.getElementById('emp-conv').value = emp.conveyance || '';
-    document.getElementById('emp-med').value = emp.medical || '';
-    document.getElementById('emp-pf').value = emp.pf || '';
-    document.getElementById('emp-tds').value = emp.tds || '';
-    document.getElementById('emp-other').value = emp.otherDeductions || '';
+    document.getElementById('emp-name').value = emp.name || '';
+    document.getElementById('emp-pos').value = emp.position || emp.designation || '';
+    document.getElementById('emp-location').value = emp.location || '';
+    document.getElementById('emp-email').value = emp.email || '';
+    document.getElementById('emp-via').value = emp.via || 'Bank';
+
+    document.getElementById('emp-present-days').value = emp.presentDays !== undefined ? emp.presentDays : '';
+    document.getElementById('emp-paid-days').value = emp.paidDays !== undefined ? emp.paidDays : '';
+    document.getElementById('emp-paid-leave').value = emp.paidLeave !== undefined ? emp.paidLeave : '';
+    document.getElementById('emp-rh').value = emp.rh !== undefined ? emp.rh : (emp.restrictedHoliday !== undefined ? emp.restrictedHoliday : '');
+    document.getElementById('emp-bal-leaves').value = emp.balanceLeaves !== undefined ? emp.balanceLeaves : '';
+    document.getElementById('emp-leave-bal').value = emp.leaveBalance !== undefined ? emp.leaveBalance : '';
+    document.getElementById('emp-comments').value = emp.comments || '';
+
+    document.getElementById('emp-basic').value = emp.basic !== undefined ? emp.basic : '';
+    document.getElementById('emp-earned').value = emp.earned !== undefined ? emp.earned : '';
+    document.getElementById('emp-ot').value = emp.ot !== undefined ? emp.ot : '';
+    document.getElementById('emp-payout').value = emp.payout !== undefined ? emp.payout : (emp.bonus !== undefined ? emp.bonus : '');
+    document.getElementById('emp-gross').value = emp.gross !== undefined ? emp.gross : '';
+
+    document.getElementById('emp-attendance-cuts').value = emp.attendanceCuts !== undefined ? emp.attendanceCuts : '';
+    document.getElementById('emp-lwop').value = emp.lwop !== undefined ? emp.lwop : (emp.leaveCut !== undefined ? emp.leaveCut : '');
+    document.getElementById('emp-advance').value = emp.advance !== undefined ? emp.advance : '';
+    document.getElementById('emp-total-deductions').value = emp.totalDeductions !== undefined ? emp.totalDeductions : (emp.total !== undefined ? emp.total : '');
+    document.getElementById('emp-net').value = emp.net !== undefined ? emp.net : '';
   }
 }
 
@@ -232,27 +257,69 @@ function closeEmployeeModal() {
 
 async function saveEmployee() {
   const editId = document.getElementById('emp-edit-id').value;
+  const id = document.getElementById('emp-id').value.trim();
+  const name = document.getElementById('emp-name').value.trim();
+  if (!name) { toast('Employee Name is required', 'error'); return; }
+
   const basic = parseFloat(document.getElementById('emp-basic').value || 0);
-  const bonus = parseFloat(document.getElementById('emp-bonus')?.value || 0);
-  const ot = parseFloat(document.getElementById('emp-ot')?.value || 0);
-  const earned = basic;
-  const gross = basic + ot + bonus;
-  const net = gross;
+  const rawEarned = parseFloat(document.getElementById('emp-earned').value || 0);
+  const earned = rawEarned > 0 ? rawEarned : basic;
+  const ot = parseFloat(document.getElementById('emp-ot').value || 0);
+  const payout = parseFloat(document.getElementById('emp-payout').value || 0);
+
+  const rawGross = parseFloat(document.getElementById('emp-gross').value || 0);
+  const gross = rawGross > 0 ? rawGross : (earned + ot + payout);
+
+  const attendanceCuts = parseFloat(document.getElementById('emp-attendance-cuts').value || 0);
+  const lwop = parseFloat(document.getElementById('emp-lwop').value || 0);
+  const advance = parseFloat(document.getElementById('emp-advance').value || 0);
+  const rawDeductions = parseFloat(document.getElementById('emp-total-deductions').value || 0);
+  const totalDeductions = rawDeductions > 0 ? rawDeductions : (attendanceCuts + lwop + advance);
+
+  const rawNet = parseFloat(document.getElementById('emp-net').value || 0);
+  const net = rawNet > 0 ? rawNet : Math.max(0, gross - totalDeductions);
+
+  const balanceLeaves = parseFloat(document.getElementById('emp-bal-leaves').value || 0);
+  const paidLeave = parseFloat(document.getElementById('emp-paid-leave').value || 0);
+  const leaveBalance = document.getElementById('emp-leave-bal').value !== '' 
+    ? parseFloat(document.getElementById('emp-leave-bal').value) 
+    : Math.max(0, balanceLeaves - paidLeave);
+
   const body = {
-    id:         document.getElementById('emp-id').value.trim(),
-    name:       document.getElementById('emp-name').value.trim(),
-    email:      document.getElementById('emp-email').value.trim(),
-    department: document.getElementById('emp-dept').value.trim(),
-    position:   document.getElementById('emp-pos').value.trim(),
+    id:                id || `EMP${String(allEmployees.length + 1).padStart(3, '0')}`,
+    name,
+    position:          document.getElementById('emp-pos').value.trim(),
+    designation:       document.getElementById('emp-pos').value.trim(),
+    location:          document.getElementById('emp-location').value.trim(),
+    email:             document.getElementById('emp-email').value.trim(),
+    via:               document.getElementById('emp-via').value.trim() || 'Bank',
+    
+    // Attendance
+    presentDays:       parseFloat(document.getElementById('emp-present-days').value || 0),
+    paidDays:          parseFloat(document.getElementById('emp-paid-days').value || 0),
+    paidLeave,
+    rh:                parseFloat(document.getElementById('emp-rh').value || 0),
+    restrictedHoliday: parseFloat(document.getElementById('emp-rh').value || 0),
+    balanceLeaves,
+    leaveBalance,
+    comments:          document.getElementById('emp-comments').value.trim(),
+
+    // Financials
     basic,
     earned,
     ot,
-    bonus,
+    payout,
+    bonus:             payout,
     gross,
+    attendanceCuts,
+    lwop,
+    leaveCut:          lwop,
+    advance,
+    totalDeductions,
+    total:             totalDeductions,
     net
   };
-  if (!body.name || !body.email) { toast('Name and email are required', 'error'); return; }
-  
+
   if (editId) {
     const idx = allEmployees.findIndex(e => e.id === editId);
     if (idx >= 0) allEmployees[idx] = { ...allEmployees[idx], ...body };
@@ -261,10 +328,48 @@ async function saveEmployee() {
   }
   try { localStorage.setItem('allEmployees', JSON.stringify(allEmployees)); } catch {}
   
-  toast(editId ? 'Employee updated in memory!' : 'Employee added to memory!', 'success');
+  toast(editId ? 'Employee updated!' : 'Employee added!', 'success');
   closeEmployeeModal();
   filterEmployees();
   if (currentPage === 'dashboard') loadDashboard();
+}
+
+// ─── Paste Modal ──────────────────────────────────────────────────
+function openPasteModal() {
+  document.getElementById('paste-modal').style.display = 'flex';
+  document.getElementById('paste-text-input').value = '';
+  document.getElementById('paste-text-input').focus();
+}
+
+function closePasteModal() {
+  document.getElementById('paste-modal').style.display = 'none';
+}
+
+async function importPastedData() {
+  const text = document.getElementById('paste-text-input').value.trim();
+  if (!text) { toast('Please paste your spreadsheet data', 'error'); return; }
+
+  toast('Processing pasted data…', 'info');
+  try {
+    const res = await fetch('/api/employees/import-text', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text })
+    });
+    const data = await res.json();
+    if (data.success && data.employees?.length > 0) {
+      allEmployees = data.employees;
+      try { localStorage.setItem('allEmployees', JSON.stringify(allEmployees)); } catch {}
+      closePasteModal();
+      toast(`✅ Loaded ${allEmployees.length} employees from pasted data!`, 'success');
+      renderEmployeesTable();
+      if (currentPage === 'dashboard') loadDashboard();
+    } else {
+      toast('❌ Failed: ' + (data.error || 'No employee rows found. Check column headers.'), 'error');
+    }
+  } catch (err) {
+    toast('Error importing pasted data: ' + err.message, 'error');
+  }
 }
 
 async function deleteEmployee(id) {

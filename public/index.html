@@ -91,11 +91,15 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
             Import CSV
           </button>
+          <button class="btn btn-outline" onclick="openPasteModal()" id="paste-data-btn" title="Paste data directly from Google Sheets or Excel">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
+            Paste Data
+          </button>
           <button class="btn btn-outline" onclick="downloadSampleCSV()" title="Download sample CSV template">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             Sample CSV
           </button>
-          <input type="file" id="csv-file-input" accept=".csv" style="display:none" onchange="importCSV(this)"/>
+          <input type="file" id="csv-file-input" accept=".csv,.tsv,.txt" style="display:none" onchange="importCSV(this)"/>
           <button class="btn btn-outline delete" id="delete-selected-btn" style="display:none" onclick="deleteSelectedEmployees()">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
             Delete Selected
@@ -109,7 +113,7 @@
 
       <div class="card">
         <div class="table-toolbar">
-          <input type="text" class="search-input" id="emp-search" placeholder="Search by name, ID, department…" oninput="filterEmployees()"/>
+          <input type="text" class="search-input" id="emp-search" placeholder="Search by name, ID, designation, location…" oninput="filterEmployees()"/>
           <select class="select-input" id="dept-filter" onchange="filterEmployees()">
             <option value="">All Departments</option>
           </select>
@@ -121,11 +125,13 @@
                 <th style="width:40px"><input type="checkbox" id="select-all-emps" onchange="toggleSelectAll(this)"/></th>
                 <th>Emp ID</th>
                 <th>Name</th>
-                <th>Department</th>
-                <th>Position</th>
-                <th>Net Pay</th>
+                <th>Designation</th>
+                <th>Location</th>
+                <th>Earned Salary</th>
+                <th>Gross Salary</th>
+                <th>Deductions</th>
+                <th>Net Salary</th>
                 <th>Email</th>
-                <th>Period</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -362,50 +368,96 @@ https://hello.speakerbox.agency/anshad</textarea>
 
   <!-- Employee Modal -->
   <div class="modal-overlay" id="employee-modal" style="display:none">
-    <div class="modal">
+    <div class="modal" style="max-width: 680px;">
       <div class="modal-header">
         <h2 id="modal-title">Add Employee</h2>
         <button class="modal-close" onclick="closeEmployeeModal()">✕</button>
       </div>
       <div class="modal-body">
         <input type="hidden" id="emp-edit-id"/>
-        <div class="form-section-title">Personal Information</div>
+        <div class="form-section-title">Employee Information</div>
         <div class="form-row">
-          <div class="form-group"><label class="form-label">Employee ID *</label><input type="text" class="form-control" id="emp-id" placeholder="EMP001"/></div>
-          <div class="form-group"><label class="form-label">Full Name *</label><input type="text" class="form-control" id="emp-name" placeholder="John Doe"/></div>
+          <div class="form-group"><label class="form-label">Employee No / ID *</label><input type="text" class="form-control" id="emp-id" placeholder="54"/></div>
+          <div class="form-group"><label class="form-label">Full Name *</label><input type="text" class="form-control" id="emp-name" placeholder="Anshad P"/></div>
         </div>
         <div class="form-row">
-          <div class="form-group"><label class="form-label">Email *</label><input type="email" class="form-control" id="emp-email" placeholder="john@company.com"/></div>
-          <div class="form-group"><label class="form-label">Joining Date</label><input type="date" class="form-control" id="emp-joining"/></div>
+          <div class="form-group"><label class="form-label">Designation</label><input type="text" class="form-control" id="emp-pos" placeholder="Accountant"/></div>
+          <div class="form-group"><label class="form-label">Location</label><input type="text" class="form-control" id="emp-location" placeholder="Calicut"/></div>
         </div>
         <div class="form-row">
-          <div class="form-group"><label class="form-label">Department</label><input type="text" class="form-control" id="emp-dept" placeholder="Engineering"/></div>
-          <div class="form-group"><label class="form-label">Position</label><input type="text" class="form-control" id="emp-pos" placeholder="Software Engineer"/></div>
+          <div class="form-group"><label class="form-label">Email ID</label><input type="email" class="form-control" id="emp-email" placeholder="anshadperumbally@gmail.com"/></div>
+          <div class="form-group"><label class="form-label">Paid Via</label><input type="text" class="form-control" id="emp-via" placeholder="Bank" value="Bank"/></div>
         </div>
-        <div class="form-section-title">Earnings (₹)</div>
+
+        <div class="form-section-title">Attendance Details</div>
         <div class="form-row">
-          <div class="form-group"><label class="form-label">Basic Salary</label><input type="number" class="form-control" id="emp-basic" placeholder="0"/></div>
-          <div class="form-group"><label class="form-label">Bonus</label><input type="number" class="form-control" id="emp-bonus" placeholder="0"/></div>
+          <div class="form-group"><label class="form-label">Present Days</label><input type="number" step="0.5" class="form-control" id="emp-present-days" placeholder="22"/></div>
+          <div class="form-group"><label class="form-label">Paid Days</label><input type="number" step="0.5" class="form-control" id="emp-paid-days" placeholder="24"/></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Paid Leave</label><input type="number" step="0.5" class="form-control" id="emp-paid-leave" placeholder="1"/></div>
+          <div class="form-group"><label class="form-label">Restricted Holiday (RH)</label><input type="number" step="0.5" class="form-control" id="emp-rh" placeholder="1"/></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Balance Leaves (Opening)</label><input type="number" step="0.5" class="form-control" id="emp-bal-leaves" placeholder="2"/></div>
+          <div class="form-group"><label class="form-label">Leave Balance (Closing)</label><input type="number" step="0.5" class="form-control" id="emp-leave-bal" placeholder="1"/></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Comments / Remarks</label>
+          <input type="text" class="form-control" id="emp-comments" placeholder="nil"/>
+        </div>
+
+        <div class="form-section-title">Earnings (Rs.)</div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Basic Pay</label><input type="number" class="form-control" id="emp-basic" placeholder="19000"/></div>
+          <div class="form-group"><label class="form-label">Earned Salary</label><input type="number" class="form-control" id="emp-earned" placeholder="19000"/></div>
         </div>
         <div class="form-row">
           <div class="form-group"><label class="form-label">Overtime (OT)</label><input type="number" class="form-control" id="emp-ot" placeholder="0"/></div>
-          <div class="form-group"><label class="form-label">HRA</label><input type="number" class="form-control" id="emp-hra" placeholder="0"/></div>
+          <div class="form-group"><label class="form-label">Pay Out</label><input type="number" class="form-control" id="emp-payout" placeholder="0"/></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Gross Salary (Earned + OT + Pay Out)</label>
+          <input type="number" class="form-control" id="emp-gross" placeholder="Auto-calculated if blank"/>
+        </div>
+
+        <div class="form-section-title">Deductions (Rs.)</div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Attendance Cuts</label><input type="number" class="form-control" id="emp-attendance-cuts" placeholder="0"/></div>
+          <div class="form-group"><label class="form-label">LWOP (Leave Without Pay)</label><input type="number" class="form-control" id="emp-lwop" placeholder="0"/></div>
         </div>
         <div class="form-row">
-          <div class="form-group"><label class="form-label">Dearness Allowance</label><input type="number" class="form-control" id="emp-da" placeholder="0"/></div>
-          <div class="form-group"><label class="form-label">Conveyance</label><input type="number" class="form-control" id="emp-conv" placeholder="0"/></div>
+          <div class="form-group"><label class="form-label">Advance Salary</label><input type="number" class="form-control" id="emp-advance" placeholder="0"/></div>
+          <div class="form-group"><label class="form-label">Total Deductions</label><input type="number" class="form-control" id="emp-total-deductions" placeholder="Auto-calculated if blank"/></div>
         </div>
-        <div class="form-group"><label class="form-label">Medical Allowance</label><input type="number" class="form-control" id="emp-med" placeholder="0"/></div>
-        <div class="form-section-title">Deductions (₹)</div>
-        <div class="form-row">
-          <div class="form-group"><label class="form-label">PF</label><input type="number" class="form-control" id="emp-pf" placeholder="0"/></div>
-          <div class="form-group"><label class="form-label">TDS</label><input type="number" class="form-control" id="emp-tds" placeholder="0"/></div>
+        <div class="form-group">
+          <label class="form-label">Net Salary (Gross - Total Deductions)</label>
+          <input type="number" class="form-control" id="emp-net" placeholder="Auto-calculated if blank"/>
         </div>
-        <div class="form-group"><label class="form-label">Other Deductions</label><input type="number" class="form-control" id="emp-other" placeholder="0"/></div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-ghost" onclick="closeEmployeeModal()">Cancel</button>
         <button class="btn btn-primary" onclick="saveEmployee()">Save Employee</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Paste Spreadsheet Data Modal -->
+  <div class="modal-overlay" id="paste-modal" style="display:none">
+    <div class="modal" style="max-width: 650px;">
+      <div class="modal-header">
+        <h2>Paste Spreadsheet Data</h2>
+        <button class="modal-close" onclick="closePasteModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:13px; color:var(--text-secondary); margin-bottom:12px;">
+          Copy rows directly from Google Sheets or Excel (including the header row) and paste below:
+        </p>
+        <textarea id="paste-text-input" class="form-control" rows="8" placeholder="Employee No&#9;Name&#9;DESIGNATION&#9;LOCATION&#9;BALANCE LEAVES&#9;BASIC PAY&#9;RH&#9;PRESENT DAYS&#9;PAID LEAVE&#9;PAID DAYS&#9;EARNED SALARY&#9;OT&#9;PAY OUT&#9;GROSS SALARY&#9;ATTENDANCE CUTS&#9;LWOP&#9;ADVANCE SALARY&#9;TOTAL&#9;NET SALARY&#9;Leave Balance&#9;comments" style="font-family:monospace; font-size:12px; white-space:pre;"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" onclick="closePasteModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="importPastedData()">Import Data</button>
       </div>
     </div>
   </div>

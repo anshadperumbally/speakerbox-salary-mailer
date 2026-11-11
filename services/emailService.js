@@ -10,42 +10,42 @@ const readSettings = () => JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8'));
 // ─── Currency formatter ───────────────────────────────────────────
 const fmt = (n) => {
   const num = parseFloat(n || 0);
-  return '₹' + num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return 'Rs. ' + num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
+const fmtNum = (n) => {
+  const num = parseFloat(n || 0);
+  return num.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 };
 
 // ─── Calculate derived fields ─────────────────────────────────────
 const calcPayroll = (emp) => {
   const basic = parseFloat(emp.basic || 0);
-  const ot = parseFloat(emp.ot || 0);
-  const bonus = parseFloat(emp.bonus || 0);
-  const stipend = parseFloat(emp.stipend || 0);
-  const ta = parseFloat(emp.ta || 0);
   const rawEarned = parseFloat(emp.earned || 0);
+  const earned = rawEarned > 0 ? rawEarned : basic;
 
-  // Base earned is either rawEarned (if prorated) or basic
-  let baseEarned = rawEarned > 0 ? rawEarned : basic;
-  if (rawEarned > 0 && (ot > 0 || bonus > 0 || stipend > 0 || ta > 0)) {
-    if (Math.abs(rawEarned - (basic + ot + bonus + stipend + ta)) < 0.01) {
-      baseEarned = basic;
-    }
-  }
+  const ot = parseFloat(emp.ot || 0);
+  const payout = parseFloat(emp.payout || emp.bonus || emp.stipend || emp.ta || 0);
 
-  // Total Earned Salary = Base Earned + OT + Bonus + Stipend + TA
-  const earned = baseEarned + ot + bonus + stipend + ta;
+  // Gross Salary = Earned Salary + OT + Pay Out
+  const rawGross = parseFloat(emp.gross || 0);
+  const calculatedGross = earned + ot + payout;
+  const gross = rawGross > 0 ? rawGross : calculatedGross;
 
-  // Deductions ONLY include Attendance Cuts, Leave Cut, Advance Salary
+  // Deductions: Attendance Cuts + LWOP + Advance Salary
   const attendanceCuts = parseFloat(emp.attendanceCuts || 0);
-  const leaveCut = parseFloat(emp.leaveCut || 0);
+  const lwop = parseFloat(emp.lwop || emp.leaveCut || 0);
   const advance = parseFloat(emp.advance || 0);
-  const totalDeductions = attendanceCuts + leaveCut + advance;
+  const calculatedDeductions = attendanceCuts + lwop + advance;
+  const rawTotal = parseFloat(emp.totalDeductions || emp.total || emp.deduction || 0);
+  const totalDeductions = rawTotal > 0 ? rawTotal : calculatedDeductions;
 
-  // Gross Salary = Total Earned Salary - Total Deduction
-  const gross = Math.max(0, earned - totalDeductions);
+  // Net Salary = Gross Salary - Total Deductions
+  const rawNet = parseFloat(emp.net || 0);
+  const calculatedNet = Math.max(0, gross - totalDeductions);
+  const net = rawNet > 0 ? rawNet : calculatedNet;
 
-  // Gross salary and Net salary will be same
-  const net = gross;
-
-  return { earned, gross, totalDeductions, net };
+  return { basic, earned, ot, payout, gross, attendanceCuts, lwop, advance, totalDeductions, net };
 };
 
 // ─── Nodemailer transporter ───────────────────────────────────────
@@ -63,7 +63,7 @@ const getTransporter = () => {
 const generatePDF = (emp, month, year) => {
   return new Promise((resolve, reject) => {
     const settings = readSettings();
-    const { earned, gross, totalDeductions, net } = calcPayroll(emp);
+    const { basic, earned, ot, payout, gross, attendanceCuts, lwop, advance, totalDeductions, net } = calcPayroll(emp);
     const slipMonth = month || emp.month || '';
     const slipYear  = year  || emp.year  || '';
 
@@ -76,180 +76,184 @@ const generatePDF = (emp, month, year) => {
     const W = doc.page.width;   // 595.28
     const H = doc.page.height;  // 841.89
     const M = 40;               // margin
-    const CW = W - M * 2;       // content width
+    const CW = W - M * 2;       // 515.28
 
-    // Full page outer black border
-    doc.lineWidth(0.5);
-    doc.rect(M - 10, M - 10, CW + 20, H - (M - 10) * 2).stroke('#000000');
+    // 1. Full page outer border
+    doc.lineWidth(1).strokeColor('#111827');
+    doc.rect(M - 12, M - 12, CW + 24, H - (M - 12) * 2).stroke();
 
     let y = M;
 
-    // --- SPEAKER BOX LOGO (Image) ---
-    const logoPath = require('path').join(__dirname, '../public/logo.png');
-    if (require('fs').existsSync(logoPath)) {
-      doc.image(logoPath, M - 5, y - 5, { height: 40 });
+    // 2. HEADER: Speakerbox Logo & Title
+    const logoPath = path.join(__dirname, '../public/logo.png');
+    if (fs.existsSync(logoPath)) {
+      doc.image(logoPath, M, y, { height: 38 });
     } else {
-      doc.font('Helvetica-Bold').fontSize(24).fillColor('#000000').text('SPEAKER BOX', M, y);
+      doc.font('Helvetica-Bold').fontSize(22).fillColor('#000000').text('SPEAKER BOX', M, y);
     }
 
-    // Title "Salary Pay Slip"
-    doc.font('Helvetica-Bold').fontSize(20).fillColor('#000000');
-    // We want the text underlined
-    doc.text('Salary Pay Slip', M, y + 20, { width: CW, align: 'center', underline: true });
-    
-    y += 70;
+    doc.font('Helvetica-Bold').fontSize(18).fillColor('#000000');
+    doc.text('Salary Pay Slip', M, y + 10, { width: CW, align: 'center', underline: true });
 
-    // Standard styling variables
-    const labelColor = '#000000';
-    const valColor = '#000080'; // Dark blue for inputs
-    const lineYOff = 12;
+    y += 58;
 
-    const drawFieldLine = (startX, fieldW, curY, isDotted = true) => {
-      doc.lineWidth(0.5).strokeColor('#cccccc');
-      if (isDotted) {
-        doc.dash(2, { space: 2 });
-      } else {
-        doc.undash();
-      }
-      doc.moveTo(startX, curY + lineYOff).lineTo(startX + fieldW, curY + lineYOff).stroke();
+    // 3. EMPLOYEE DETAILS: Aligned 2-Column Key-Value Grid
+    const colW = (CW - 24) / 2;
+    const leftColX = M;
+    const rightColX = M + colW + 24;
+
+    const drawAlignedRow = (l1, v1, l2, v2, yPos) => {
+      const lblW1 = 100;
+      const valW1 = colW - lblW1 - 8;
+      doc.font('Helvetica').fontSize(9.5).fillColor('#374151').text(l1, leftColX, yPos, { width: lblW1 - 10 });
+      doc.text(':', leftColX + lblW1 - 10, yPos);
+      doc.font('Helvetica-Bold').fontSize(9.5).fillColor('#1e3a8a').text(v1 || '—', leftColX + lblW1, yPos, { width: valW1 });
+      
+      doc.lineWidth(0.5).strokeColor('#d1d5db').dash(2, { space: 2 });
+      doc.moveTo(leftColX + lblW1, yPos + 12).lineTo(leftColX + colW, yPos + 12).stroke();
+
+      const lblW2 = 90;
+      const valW2 = colW - lblW2 - 8;
+      doc.font('Helvetica').fontSize(9.5).fillColor('#374151').text(l2, rightColX, yPos, { width: lblW2 - 10 });
+      doc.text(':', rightColX + lblW2 - 10, yPos);
+      doc.font('Helvetica-Bold').fontSize(9.5).fillColor('#1e3a8a').text(v2 || '—', rightColX + lblW2, yPos, { width: valW2 });
+
+      doc.moveTo(rightColX + lblW2, yPos + 12).lineTo(rightColX + colW, yPos + 12).stroke();
       doc.undash();
     };
 
-    // Employee Name & Position
-    doc.font('Helvetica').fontSize(10).fillColor(labelColor);
-    doc.text('Employee Name:', M, y);
-    doc.font('Helvetica-Bold').fillColor(valColor).text(emp.name || '', M + 90, y - 1);
-    drawFieldLine(M + 80, CW - 80, y);
+    const periodStr = [slipMonth, slipYear].filter(Boolean).join(' ') || '—';
+    const designationStr = emp.position || emp.designation || '—';
+
+    drawAlignedRow('Employee Name', emp.name, 'Employee ID', emp.id, y); y += 22;
+    drawAlignedRow('Designation', designationStr, 'Location', emp.location || '—', y); y += 22;
+    drawAlignedRow('Month & Year', periodStr, 'E-mail ID', emp.email || '—', y); y += 32;
+
+    // 4. ATTENDANCE DETAILS
+    doc.font('Helvetica-Bold').fontSize(11).fillColor('#111827').text('Attendance Details', M, y);
+    doc.moveTo(M, y + 14).lineTo(M + CW, y + 14).lineWidth(0.6).strokeColor('#e5e7eb').stroke();
     y += 20;
 
-    // ID & Designation
-    doc.font('Helvetica').fontSize(10).fillColor(labelColor).text('Employee ID:', M, y);
-    doc.font('Helvetica-Bold').fillColor(valColor).text(emp.id || '', M + 80, y - 1, { width: 100, align: 'center' });
-    drawFieldLine(M + 80, 100, y);
-
-    doc.font('Helvetica').fontSize(10).fillColor(labelColor).text('Designation:', M + 190, y);
-    doc.font('Helvetica-Bold').fillColor(valColor).text(emp.position || '', M + 260, y - 1);
-    drawFieldLine(M + 260, CW - 260, y);
-    y += 20;
-
-    // Month & Year & Location
-    doc.font('Helvetica').fontSize(10).fillColor(labelColor).text('Month:', M, y);
-    doc.font('Helvetica-Bold').fillColor(valColor).text(slipMonth, M + 40, y - 1, { width: 80, align: 'center' });
-    drawFieldLine(M + 40, 80, y);
-
-    doc.font('Helvetica').fontSize(10).fillColor(labelColor).text('Year :', M + 130, y);
-    doc.font('Helvetica-Bold').fillColor(valColor).text(slipYear, M + 170, y - 1, { width: 60, align: 'center' });
-    drawFieldLine(M + 170, 60, y);
-
-    doc.font('Helvetica').fontSize(10).fillColor(labelColor).text('Location:', M + 245, y);
-    doc.font('Helvetica-Bold').fillColor(valColor).text(emp.location || '', M + 300, y - 1, { width: 100, align: 'center' });
-    drawFieldLine(M + 295, CW - 295, y);
-    y += 20;
-
-    // E-mail ID
-    doc.font('Helvetica').fontSize(10).fillColor(labelColor).text('E-mail ID:', M, y);
-    doc.font('Helvetica-Bold').fillColor(valColor).text(emp.email || '', M + 60, y - 1);
-    drawFieldLine(M + 50, CW - 50, y);
-    y += 30;
-
-    // --- ATTENDANCE ---
-    doc.font('Helvetica-Bold').fontSize(12).fillColor('#000000').text('Attendance', M, y, { underline: true });
-    y += 25;
-    
-    doc.font('Helvetica').fontSize(10).fillColor(labelColor).text('Present Days :', M, y);
-    doc.font('Helvetica-Bold').fillColor(valColor).text(emp.presentDays || '0', M + 75, y - 1, { width: 30, align: 'center' });
-    drawFieldLine(M + 70, 40, y);
-
-    doc.font('Helvetica').fontSize(10).fillColor(labelColor).text('Paid Days :', M + 130, y);
-    doc.font('Helvetica-Bold').fillColor(valColor).text(emp.paidDays || '0', M + 195, y - 1, { width: 30, align: 'center' });
-    drawFieldLine(M + 190, 40, y);
-
-    doc.font('Helvetica').fontSize(10).fillColor(labelColor).text('Paid Leave :', M + 250, y);
-    doc.font('Helvetica-Bold').fillColor(valColor).text(emp.paidLeave || '0', M + 315, y - 1, { width: 30, align: 'center' });
-    drawFieldLine(M + 310, 40, y);
-
-    doc.font('Helvetica').fontSize(10).fillColor(labelColor).text('Restricted Holiday:', M + 360, y);
-    doc.font('Helvetica-Bold').fillColor(valColor).text(emp.restrictedHoliday || '0', M + 460, y - 1, { width: 40, align: 'center' });
-    drawFieldLine(M + 455, CW - 455, y);
-
-    y += 20;
-
-    doc.font('Helvetica').fontSize(10).fillColor(labelColor).text('Balance Leaves :', M, y);
-    doc.font('Helvetica-Bold').fillColor(valColor).text(emp.balanceLeaves || '0', M + 85, y - 1, { width: 40, align: 'center' });
-    drawFieldLine(M + 80, 50, y);
-
-    y += 30;
-
-
-    // Employee comments section removed per layout tweak
-
-    // Bank Account Details section was removed per requested layout adjust.
-
-
-    // --- OFFICE USE ONLY ---
-    doc.font('Helvetica-Bold').fontSize(12).fillColor('#000000').text('Office Use Only', M, y, { underline: true });
-    y += 25;
-
-    const drawOfficeRow = (label1, val1, label2, val2, yPos, isBold1 = false, isBold2 = false) => {
-      // col 1
-      if(label1) {
-        doc.font(isBold1 ? 'Helvetica-Bold' : 'Helvetica').fontSize(10).fillColor('#000000').text(label1, M, yPos, {width: 250});
-        doc.text(':', M + 175, yPos);
-        const dispVal1 = isNaN(parseFloat(val1)) ? val1 : parseFloat(val1 || 0).toFixed(2);
-        const vPrint = (label1 === 'Basic Pay' || label1 === 'Basic Salary' || label1 === 'Earned Salary') ? "Rs. " + dispVal1.replace('.00','') : dispVal1;
-        doc.font('Helvetica-Bold').fillColor('#000000').text(vPrint, M + 185, yPos, {width: 80, align: 'right'});
-      }
-      
-      // col 2
-      if(label2) {
-        doc.font(isBold2 ? 'Helvetica-Bold' : 'Helvetica').fontSize(10).fillColor('#000000').text(label2, M + 285, yPos, {width: 165});
-        doc.text(':', M + 440, yPos);
-        const dispVal2 = isNaN(parseFloat(val2)) ? val2 : parseFloat(val2 || 0).toFixed(2);
-        const clr2 = label2 === 'Total Deduction' ? '#cc0000' : '#000000';
-        doc.font('Helvetica-Bold').fillColor(clr2).text(dispVal2, M + 450, yPos, {width: 60, align: 'right'});
-      }
+    const cW = CW / 4;
+    const drawAttCell = (lbl, val, colIdx, rowY) => {
+      const x = M + colIdx * cW;
+      doc.font('Helvetica').fontSize(8.5).fillColor('#6b7280').text(lbl, x + 8, rowY);
+      doc.font('Helvetica-Bold').fontSize(10).fillColor('#1e3a8a').text(String(val !== undefined && val !== null ? val : '0'), x + 8, rowY + 13);
     };
 
-    drawOfficeRow('Basic Pay', emp.basic, 'Attendance Cuts', emp.attendanceCuts, y); y += 22;
-    drawOfficeRow('OT', emp.ot, 'Leave Cut', emp.leaveCut, y); y += 22;
-    drawOfficeRow('Bonus', emp.bonus, 'Advance Salary', emp.advance, y); y += 22;
+    // Box background
+    doc.rect(M, y, CW, 70).lineWidth(0.5).strokeColor('#e5e7eb').fillAndStroke('#f9fafb', '#e5e7eb');
 
-    doc.moveTo(M, y-4).lineTo(M + CW, y-4).strokeColor('#cccccc').lineWidth(0.5).stroke();
+    const rhVal = emp.restrictedHoliday !== undefined ? emp.restrictedHoliday : (emp.rh !== undefined ? emp.rh : 0);
+    drawAttCell('Present Days', emp.presentDays !== undefined ? emp.presentDays : 0, 0, y + 6);
+    drawAttCell('Paid Days', emp.paidDays !== undefined ? emp.paidDays : 0, 1, y + 6);
+    drawAttCell('Paid Leave', emp.paidLeave !== undefined ? emp.paidLeave : 0, 2, y + 6);
+    drawAttCell('Restricted Holiday (RH)', rhVal, 3, y + 6);
 
-    drawOfficeRow('Earned Salary', earned, 'Total Deduction', totalDeductions, y, false, true); y += 20;
+    // Inner dividing line
+    doc.moveTo(M + 8, y + 36).lineTo(M + CW - 8, y + 36).lineWidth(0.5).strokeColor('#e5e7eb').stroke();
 
-    doc.moveTo(M, y-2).lineTo(M + CW, y-2).strokeColor('#cccccc').lineWidth(0.5).stroke();
+    const openingLeaves = emp.balanceLeaves !== undefined ? emp.balanceLeaves : 0;
+    const closingLeaves = emp.leaveBalance !== undefined ? emp.leaveBalance : (emp.balanceLeaves !== undefined ? Math.max(0, openingLeaves - (emp.paidLeave || 0)) : 0);
 
-    doc.font('Helvetica').fontSize(10).fillColor('#000000').text('Gross Salary', M, y);
-    doc.font('Helvetica-Bold').fillColor('#000000').text(': ' + parseFloat(gross).toFixed(2), M + 440, y, {width: 70, align: 'right'});
-    
-    y += 10;
-    doc.moveTo(M, y+5).lineTo(M + CW, y+5).strokeColor('#cccccc').dash(1, {space:1}).lineWidth(0.5).stroke();
-    doc.undash();
-    
-    y += 35;
+    drawAttCell('Balance Leaves (Opening)', openingLeaves, 0, y + 40);
+    drawAttCell('Leave Balance (Closing)', closingLeaves, 1, y + 40);
 
-    // NET SALARY Box
-    doc.font('Helvetica').fontSize(10).fillColor('#000000').text('Net Salary       :', M, y+6);
-    
-    doc.rect(M + 80, y, 140, 24).strokeColor('#000000').lineWidth(1.2).stroke();
-    const netStr = Number(net).toLocaleString('en-IN');
-    doc.font('Helvetica-Bold').fontSize(14).fillColor('#007800').text('Rs. ' + netStr + '/-', M + 80, y + 5, {width: 140, align: 'center'});
+    // Comments / Remarks
+    const commX = M + 2 * cW;
+    doc.font('Helvetica').fontSize(8.5).fillColor('#6b7280').text('Comments / Remarks', commX + 8, y + 40);
+    doc.font('Helvetica-Oblique').fontSize(9).fillColor('#1e3a8a').text(emp.comments || 'nil', commX + 8, y + 53, { width: cW * 2 - 16 });
 
-    // Paid Via
-    doc.font('Helvetica').fontSize(10).fillColor('#000000').text('Paid Via     :', M + 260, y + 6);
-    doc.font('Helvetica-Bold').fontSize(16).fillColor('#007800').text(emp.via || 'Bank', M + 325, y + 4);
+    y += 85;
 
-    y += 70;
+    // 5. OFFICE USE ONLY (Earnings & Deductions)
+    doc.font('Helvetica-Bold').fontSize(11).fillColor('#111827').text('Office Use Only', M, y);
+    doc.moveTo(M, y + 14).lineTo(M + CW, y + 14).lineWidth(0.6).strokeColor('#e5e7eb').stroke();
+    y += 20;
 
-    const signaturePath = require('path').join(__dirname, '../public/signature.png');
-    if (require('fs').existsSync(signaturePath)) {
-      // Shifted left 55px (from M+95 to M+40) to account for transparent padding in image
-      doc.image(signaturePath, M + 40, y - 40, { height: 60 });
+    const halfW = (CW - 16) / 2;
+    const leftX = M;
+    const rightX = M + halfW + 16;
+
+    // Table header bar
+    doc.rect(leftX, y, halfW, 20).fill('#f3f4f6');
+    doc.rect(rightX, y, halfW, 20).fill('#f3f4f6');
+    doc.font('Helvetica-Bold').fontSize(9).fillColor('#111827');
+    doc.text('EARNINGS', leftX + 10, y + 5);
+    doc.text('AMOUNT (Rs.)', leftX, y + 5, { width: halfW - 10, align: 'right' });
+    doc.text('DEDUCTIONS', rightX + 10, y + 5);
+    doc.text('AMOUNT (Rs.)', rightX, y + 5, { width: halfW - 10, align: 'right' });
+    y += 25;
+
+    const earnRows = [
+      ['Basic Pay', fmtNum(basic)],
+      ['Earned Salary', fmtNum(earned)],
+      ['Over Time (OT)', fmtNum(ot)],
+      ['Pay Out', fmtNum(payout)]
+    ];
+
+    const dedRows = [
+      ['Attendance Cuts', fmtNum(attendanceCuts)],
+      ['LWOP (Leave Without Pay)', fmtNum(lwop)],
+      ['Advance Salary', fmtNum(advance)],
+      ['—', '0.00']
+    ];
+
+    for (let r = 0; r < 4; r++) {
+      const [eLbl, eVal] = earnRows[r];
+      const [dLbl, dVal] = dedRows[r];
+      
+      // Left side (Earnings)
+      doc.font('Helvetica').fontSize(9.5).fillColor('#374151').text(eLbl, leftX + 10, y);
+      doc.font('Helvetica').fontSize(9.5).fillColor('#111827').text(eVal, leftX, y, { width: halfW - 10, align: 'right' });
+
+      // Right side (Deductions)
+      doc.font('Helvetica').fontSize(9.5).fillColor('#374151').text(dLbl, rightX + 10, y);
+      doc.font('Helvetica').fontSize(9.5).fillColor('#111827').text(dVal, rightX, y, { width: halfW - 10, align: 'right' });
+
+      y += 20;
     }
 
-    doc.font('Helvetica').fontSize(12).fillColor('#000000').text('Accounts :', M + 20, y);
-    doc.text('Managing Partner :', M + 200, y);
+    // Divider before totals
+    doc.lineWidth(0.8).strokeColor('#9ca3af');
+    doc.moveTo(leftX, y).lineTo(leftX + halfW, y).stroke();
+    doc.moveTo(rightX, y).lineTo(rightX + halfW, y).stroke();
+    y += 6;
+
+    // Totals row: Gross Salary vs Total Deductions
+    doc.font('Helvetica-Bold').fontSize(10).fillColor('#111827').text('Gross Salary', leftX + 10, y);
+    doc.font('Helvetica-Bold').fontSize(10).fillColor('#111827').text('Rs. ' + fmtNum(gross), leftX, y, { width: halfW - 10, align: 'right' });
+
+    doc.font('Helvetica-Bold').fontSize(10).fillColor('#991b1b').text('Total Deductions', rightX + 10, y);
+    doc.font('Helvetica-Bold').fontSize(10).fillColor('#991b1b').text('Rs. ' + fmtNum(totalDeductions), rightX, y, { width: halfW - 10, align: 'right' });
+
+    y += 26;
+
+    // Bottom horizontal divider
+    doc.lineWidth(0.5).strokeColor('#e5e7eb').moveTo(M, y).lineTo(M + CW, y).stroke();
+    y += 22;
+
+    // 6. NET SALARY & PAID VIA
+    doc.font('Helvetica-Bold').fontSize(11).fillColor('#111827').text('Net Salary :', M, y + 7);
+    const netBoxW = 160;
+    const netBoxH = 28;
+    doc.rect(M + 75, y, netBoxW, netBoxH).lineWidth(1.2).strokeColor('#15803d').fillAndStroke('#f0fdf4', '#15803d');
+    doc.font('Helvetica-Bold').fontSize(13).fillColor('#15803d').text('Rs. ' + Number(net).toLocaleString('en-IN') + '/-', M + 75, y + 7, { width: netBoxW, align: 'center' });
+
+    doc.font('Helvetica').fontSize(10).fillColor('#374151').text('Paid Via :', M + 270, y + 8);
+    doc.font('Helvetica-Bold').fontSize(13).fillColor('#15803d').text(emp.via || 'Bank', M + 325, y + 7);
+
+    y += 75;
+
+    // 7. SIGNATURES
+    const sigPath = path.join(__dirname, '../public/signature.png');
+    if (fs.existsSync(sigPath)) {
+      doc.image(sigPath, M + 65, y - 22, { height: 42 });
+    }
+
+    doc.font('Helvetica').fontSize(10).fillColor('#374151');
+    doc.text('Accounts :', M, y);
+    doc.text('Managing Partner :', M + 240, y);
 
     doc.end();
   });
@@ -257,44 +261,51 @@ const generatePDF = (emp, month, year) => {
 
 // ─── Template renderer ────────────────────────────────────────────
 const renderTemplate = (template, emp, month, year) => {
-  const { earned, gross, totalDeductions, net } = calcPayroll(emp);
+  const { basic, earned, ot, payout, gross, attendanceCuts, lwop, advance, totalDeductions, net } = calcPayroll(emp);
   const slipMonth = month || emp.month || '';
   const slipYear  = year  || emp.year  || '';
   return template
-    .replace(/{{name}}/g,        emp.name || '')
-    .replace(/{{id}}/g,          emp.id   || '')
-    .replace(/{{email}}/g,       emp.email || '')
-    .replace(/{{department}}/g,  emp.department || '')
-    .replace(/{{position}}/g,    emp.position   || '')
-    .replace(/{{month}}/g,       slipMonth)
-    .replace(/{{year}}/g,        slipYear)
-    .replace(/{{basic}}/g,       fmt(emp.basic))
-    .replace(/{{ot}}/g,          fmt(emp.ot))
-    .replace(/{{bonus}}/g,       fmt(emp.bonus))
-    .replace(/{{stipend}}/g,     fmt(emp.stipend))
-    .replace(/{{ta}}/g,          fmt(emp.ta))
-    .replace(/{{gross}}/g,       fmt(gross))
-    .replace(/{{earned}}/g,      fmt(earned))
-    .replace(/{{advance}}/g,     fmt(emp.advance))
-    .replace(/{{deductions}}/g,  fmt(totalDeductions))
-    .replace(/{{netPay}}/g,      fmt(net))
-    .replace(/{{net}}/g,         fmt(net))
-    .replace(/{{via}}/g,         emp.via || 'Bank');
+    .replace(/{{name}}/g,            emp.name || '')
+    .replace(/{{id}}/g,              emp.id   || '')
+    .replace(/{{email}}/g,           emp.email || '')
+    .replace(/{{department}}/g,      emp.department || '')
+    .replace(/{{position}}/g,        emp.position   || '')
+    .replace(/{{designation}}/g,     emp.position || emp.designation || '')
+    .replace(/{{location}}/g,        emp.location   || '')
+    .replace(/{{month}}/g,           slipMonth)
+    .replace(/{{year}}/g,            slipYear)
+    .replace(/{{basic}}/g,           fmt(basic))
+    .replace(/{{earned}}/g,          fmt(earned))
+    .replace(/{{ot}}/g,              fmt(ot))
+    .replace(/{{payout}}/g,          fmt(payout))
+    .replace(/{{bonus}}/g,           fmt(payout))
+    .replace(/{{stipend}}/g,         fmt(emp.stipend))
+    .replace(/{{ta}}/g,              fmt(emp.ta))
+    .replace(/{{gross}}/g,           fmt(gross))
+    .replace(/{{attendanceCuts}}/g,  fmt(attendanceCuts))
+    .replace(/{{lwop}}/g,            fmt(lwop))
+    .replace(/{{advance}}/g,         fmt(advance))
+    .replace(/{{deductions}}/g,      fmt(totalDeductions))
+    .replace(/{{netPay}}/g,          fmt(net))
+    .replace(/{{net}}/g,             fmt(net))
+    .replace(/{{presentDays}}/g,     String(emp.presentDays !== undefined ? emp.presentDays : '0'))
+    .replace(/{{paidDays}}/g,        String(emp.paidDays !== undefined ? emp.paidDays : '0'))
+    .replace(/{{paidLeave}}/g,       String(emp.paidLeave !== undefined ? emp.paidLeave : '0'))
+    .replace(/{{balanceLeaves}}/g,   String(emp.balanceLeaves !== undefined ? emp.balanceLeaves : '0'))
+    .replace(/{{leaveBalance}}/g,    String(emp.leaveBalance !== undefined ? emp.leaveBalance : '0'))
+    .replace(/{{comments}}/g,        emp.comments || '')
+    .replace(/{{via}}/g,             emp.via || 'Bank');
 };
 
 const DEFAULT_SUBJECT = 'Salary Slip for {{month}} {{year}} – {{name}}';
 const DEFAULT_BODY =
 `Dear {{name}},
 
-Please find attached your salary slip for the month of {{month}}. A summary is provided below for your reference:
+Please find attached your salary slip for the month of {{month}} {{year}}. A summary is provided below for your reference:
 
-Total Earned Salary: {{earned}}
-
+Gross Salary: {{gross}}
 Total Deductions: {{deductions}}
-
 Net Amount: {{net}}
-
-
 
 Best regards,
 
