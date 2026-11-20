@@ -156,7 +156,7 @@ function filterEmployees() {
         <td><span class="emp-id-badge">${emp.id}</span></td>
         <td class="emp-name">${emp.name}</td>
         <td style="color:var(--text-secondary)">${emp.position || emp.designation || '—'}</td>
-        <td style="color:var(--text-secondary)">${emp.location || '—'}</td>
+        <td style="color:var(--text-secondary)">${emp.location || '—'}${emp.month ? ` <span style="font-size:11px; color:#2563eb; font-weight:500;">(${emp.month})</span>` : ''}</td>
         <td style="color:var(--text-secondary)">${formatINR(earned)}</td>
         <td style="color:var(--text-primary);font-weight:600">${formatINR(gross)}</td>
         <td style="color:#ef4444">${formatINR(deductions)}</td>
@@ -224,7 +224,7 @@ function openEmployeeModal(id = null) {
   const modal = document.getElementById('employee-modal');
   modal.style.display = 'flex';
   const fields = [
-    'id','name','pos','location','email','via',
+    'id','name','pos','location','email','via','month',
     'working-days','present-days','paid-days','paid-leave','rh','bal-leaves','leave-bal','comments',
     'basic','earned','ot','payout','gross',
     'attendance-cuts','lwop','advance','total-deductions','net'
@@ -251,6 +251,8 @@ function openEmployeeModal(id = null) {
     document.getElementById('emp-location').value = emp.location || '';
     document.getElementById('emp-email').value = emp.email || '';
     document.getElementById('emp-via').value = emp.via || 'Bank';
+    const monthEl = document.getElementById('emp-month');
+    if (monthEl) monthEl.value = emp.month || '';
 
     document.getElementById('emp-working-days').value = emp.workingDays !== undefined ? emp.workingDays : (emp.companyWorkingDays !== undefined ? emp.companyWorkingDays : '24');
     document.getElementById('emp-present-days').value = emp.presentDays !== undefined ? emp.presentDays : '';
@@ -358,6 +360,7 @@ async function saveEmployee() {
     location:          document.getElementById('emp-location').value.trim(),
     email:             document.getElementById('emp-email').value.trim(),
     via:               document.getElementById('emp-via').value.trim() || 'Bank',
+    month:             document.getElementById('emp-month')?.value.trim() || '',
     
     // Attendance
     workingDays,

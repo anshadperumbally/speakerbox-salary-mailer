@@ -392,6 +392,9 @@ https://hello.speakerbox.agency/anshad</textarea>
           <div class="form-group"><label class="form-label">Email ID</label><input type="email" class="form-control" id="emp-email" placeholder="anshadperumbally@gmail.com"/></div>
           <div class="form-group"><label class="form-label">Paid Via</label><input type="text" class="form-control" id="emp-via" placeholder="Bank" value="Bank"/></div>
         </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Salary Month / Period</label><input type="text" class="form-control" id="emp-month" placeholder="October 2026"/></div>
+        </div>
 
         <div class="form-section-title">Attendance Details</div>
         <div class="form-row">
@@ -454,10 +457,13 @@ https://hello.speakerbox.agency/anshad</textarea>
         <button class="modal-close" onclick="closePasteModal()">✕</button>
       </div>
       <div class="modal-body">
-        <p style="font-size:13px; color:var(--text-secondary); margin-bottom:12px;">
+        <p style="font-size:13px; color:var(--text-secondary); margin-bottom:8px;">
           Copy rows directly from Google Sheets or Excel (including the header row) and paste below:
         </p>
-        <textarea id="paste-text-input" class="form-control" rows="8" placeholder="Employee No&#9;Name&#9;DESIGNATION&#9;LOCATION&#9;BALANCE LEAVES&#9;BASIC PAY&#9;RH&#9;PRESENT DAYS&#9;PAID LEAVE&#9;PAID DAYS&#9;EARNED SALARY&#9;OT&#9;PAY OUT&#9;GROSS SALARY&#9;ATTENDANCE CUTS&#9;LWOP&#9;ADVANCE SALARY&#9;TOTAL&#9;NET SALARY&#9;Leave Balance&#9;comments" style="font-family:monospace; font-size:12px; white-space:pre;"></textarea>
+        <div style="font-size:11.5px; color:#475569; background:#f8fafc; padding:8px 12px; border-radius:6px; margin-bottom:12px; border:1px solid #e2e8f0; line-height:1.5;">
+          <strong>Supported columns:</strong> Employee No, Name, Designation, Location, <strong>Month</strong>, <strong>Company Working Days</strong>, Balance Leaves, Basic Pay, RH, Present Days, Paid Leave, Paid Days, Earned Salary, OT, Pay Out, Gross Salary, Attendance Cuts, LWOP, Advance Salary, Total, Net Salary, Leave Balance, Comments, Email
+        </div>
+        <textarea id="paste-text-input" class="form-control" rows="8" placeholder="Employee No&#9;Name&#9;DESIGNATION&#9;LOCATION&#9;Month&#9;Company Working Days&#9;BALANCE LEAVES&#9;BASIC PAY&#9;RH&#9;PRESENT DAYS&#9;PAID LEAVE&#9;PAID DAYS&#9;EARNED SALARY&#9;OT&#9;PAY OUT&#9;GROSS SALARY&#9;ATTENDANCE CUTS&#9;LWOP&#9;ADVANCE SALARY&#9;TOTAL&#9;NET SALARY&#9;Leave Balance&#9;comments" style="font-family:monospace; font-size:12px; white-space:pre;"></textarea>
       </div>
       <div class="modal-footer">
         <button class="btn btn-ghost" onclick="closePasteModal()">Cancel</button>

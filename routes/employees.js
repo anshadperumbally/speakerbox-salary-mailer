@@ -83,8 +83,18 @@ const csvRowToEmployee = (row, index, existingCount) => {
 
   let settings = {};
   try { settings = JSON.parse(fs.readFileSync(path.join(dataDir, 'settings.json'), 'utf8')); } catch {}
-  const rawWorkingDays = parseNum(getVal(row, 'Company Working Days', 'Working Days', 'Workingdays', 'Total Working Days', 'No. Of Working Days', 'No of Working Days'));
+  const rawWorkingDays = parseNum(getVal(row, 'Company Working Days', 'COMPANY WORKING DAYS', 'Company Workingdays', 'Working Days', 'Workingdays', 'Total Working Days', 'No. Of Working Days', 'No of Working Days'));
   const workingDays = rawWorkingDays > 0 ? rawWorkingDays : (parseFloat(settings.companyWorkingDays) || 24);
+
+  let monthVal = (getVal(row, 'Month', 'month', 'MONTH', 'Salary Month', 'Period', 'Month & Year', 'MONTH & YEAR') || '').trim();
+  let yearVal = (getVal(row, 'Year', 'year', 'YEAR') || '').trim();
+  if (monthVal && !yearVal) {
+    const mMatch = monthVal.match(/(20\d\d)/);
+    if (mMatch) {
+      yearVal = mMatch[1];
+      monthVal = monthVal.replace(yearVal, '').trim().replace(/^[-/,\s]+|[-/,\s]+$/g, '');
+    }
+  }
 
   const basic = parseAmount(getVal(row, 'Basic Pay', 'BASIC PAY', 'Basic', 'basic', 'Basic Salary'));
   const paidDays = parseNum(getVal(row, 'Paid Days', 'PAID DAYS', 'Paid days', 'Workingdays', 'Working Days'));
@@ -176,8 +186,8 @@ const csvRowToEmployee = (row, index, existingCount) => {
     // Net
     net,
     
-    month:             (getVal(row, 'Month', 'month') || '').trim(),
-    year:              (getVal(row, 'Year', 'year') || '').trim(),
+    month:             monthVal,
+    year:              yearVal,
     via:               (getVal(row, 'via', 'Via', 'Paid Via', 'Payment Mode') || 'Bank').trim()
   };
 };
@@ -342,8 +352,8 @@ router.post('/import-text', (req, res) => {
 
 // GET sample CSV template
 router.get('/sample-csv', (req, res) => {
-  const headers = 'Employee No,Name,DESIGNATION,LOCATION,BALANCE LEAVES,BASIC PAY,RH,PRESENT DAYS,PAID LEAVE,PAID DAYS,Company Working Days,EARNED SALARY,OT,PAY OUT,GROSS SALARY,ATTENDANCE CUTS,LWOP,ADVANCE SALARY,TOTAL,NET SALARY,Leave Balance,comments,Email';
-  const sample  = '54,Anshad P,Accountant,Calicut,2,19000,1,22,1,24,24,19000,500,0,19500,200,300,1000,1500,18000,1,Nil,anshadperumbally@gmail.com';
+  const headers = 'Employee No,Name,DESIGNATION,LOCATION,Month,Company Working Days,BALANCE LEAVES,BASIC PAY,RH,PRESENT DAYS,PAID LEAVE,PAID DAYS,EARNED SALARY,OT,PAY OUT,GROSS SALARY,ATTENDANCE CUTS,LWOP,ADVANCE SALARY,TOTAL,NET SALARY,Leave Balance,comments,Email';
+  const sample  = '54,Anshad P,Accountant,Calicut,October 2026,24,2,19000,1,22,1,24,19000,500,0,19500,200,300,1000,1500,18000,1,Nil,anshadperumbally@gmail.com';
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader('Content-Disposition', 'attachment; filename="speakerbox_salary_template.csv"');
   res.send(`${headers}\n${sample}`);
