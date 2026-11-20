@@ -20,9 +20,22 @@ const fmtNum = (n) => {
 
 // ─── Calculate derived fields ─────────────────────────────────────
 const calcPayroll = (emp) => {
+  let settings = {};
+  try { settings = readSettings(); } catch {}
   const basic = parseFloat(emp.basic || 0);
+  const paidDays = parseFloat(emp.paidDays !== undefined ? emp.paidDays : 0);
+  const workingDays = parseFloat(emp.workingDays || emp.companyWorkingDays || settings.companyWorkingDays || 24);
   const rawEarned = parseFloat(emp.earned || 0);
-  const earned = rawEarned > 0 ? rawEarned : basic;
+
+  // earned salary = Basic pay X paid days / company working days
+  let earned = 0;
+  if (basic > 0 && paidDays > 0 && workingDays > 0) {
+    earned = Math.round((basic * paidDays / workingDays) * 100) / 100;
+  } else if (rawEarned > 0) {
+    earned = rawEarned;
+  } else {
+    earned = basic;
+  }
 
   const ot = parseFloat(emp.ot || 0);
   const payout = parseFloat(emp.payout || emp.bonus || emp.stipend || emp.ta || 0);
@@ -43,7 +56,7 @@ const calcPayroll = (emp) => {
   const calculatedNet = Math.max(0, gross - totalDeductions);
   const net = rawNet > 0 ? rawNet : calculatedNet;
 
-  return { basic, earned, ot, payout, gross, attendanceCuts, lwop, advance, totalDeductions, net };
+  return { basic, paidDays, workingDays, earned, ot, payout, gross, attendanceCuts, lwop, advance, totalDeductions, net };
 };
 
 // ─── Nodemailer transporter ───────────────────────────────────────
@@ -61,7 +74,7 @@ const getTransporter = () => {
 const generatePDF = (emp, month, year) => {
   return new Promise((resolve, reject) => {
     const settings = readSettings();
-    const { basic, earned, ot, payout, gross, attendanceCuts, lwop, advance, totalDeductions, net } = calcPayroll(emp);
+    const { basic, paidDays, workingDays, earned, ot, payout, gross, attendanceCuts, lwop, advance, totalDeductions, net } = calcPayroll(emp);
     const slipMonth = month || emp.month || '';
     const slipYear  = year  || emp.year  || '';
 
@@ -132,35 +145,44 @@ const generatePDF = (emp, month, year) => {
     doc.moveTo(M, y + 14).lineTo(M + CW, y + 14).lineWidth(0.6).strokeColor('#e5e7eb').stroke();
     y += 20;
 
-    const cW = CW / 4;
-    const drawAttCell = (lbl, val, colIdx, rowY) => {
-      const x = M + colIdx * cW;
-      doc.font('Helvetica').fontSize(8.5).fillColor('#6b7280').text(lbl, x + 8, rowY);
-      doc.font('Helvetica-Bold').fontSize(10).fillColor('#1e3a8a').text(String(val !== undefined && val !== null ? val : '0'), x + 8, rowY + 13);
+    // 5 Columns in Row 1: Company Working Days, Present Days, Paid Days, Paid Leave, RH
+    const cW5 = CW / 5;
+    const drawAttCell5 = (lbl, val, colIdx, rowY) => {
+      const x = M + colIdx * cW5;
+      doc.font('Helvetica').fontSize(8).fillColor('#6b7280').text(lbl, x + 6, rowY);
+      doc.font('Helvetica-Bold').fontSize(10).fillColor('#1e3a8a').text(String(val !== undefined && val !== null ? val : '0'), x + 6, rowY + 13);
     };
 
     // Box background
     doc.rect(M, y, CW, 70).lineWidth(0.5).strokeColor('#e5e7eb').fillAndStroke('#f9fafb', '#e5e7eb');
 
     const rhVal = emp.restrictedHoliday !== undefined ? emp.restrictedHoliday : (emp.rh !== undefined ? emp.rh : 0);
-    drawAttCell('Present Days', emp.presentDays !== undefined ? emp.presentDays : 0, 0, y + 6);
-    drawAttCell('Paid Days', emp.paidDays !== undefined ? emp.paidDays : 0, 1, y + 6);
-    drawAttCell('Paid Leave', emp.paidLeave !== undefined ? emp.paidLeave : 0, 2, y + 6);
-    drawAttCell('Restricted Holiday (RH)', rhVal, 3, y + 6);
+    drawAttCell5('Company Working Days', workingDays, 0, y + 6);
+    drawAttCell5('Present Days', emp.presentDays !== undefined ? emp.presentDays : 0, 1, y + 6);
+    drawAttCell5('Paid Days', paidDays, 2, y + 6);
+    drawAttCell5('Paid Leave', emp.paidLeave !== undefined ? emp.paidLeave : 0, 3, y + 6);
+    drawAttCell5('Restricted Holiday (RH)', rhVal, 4, y + 6);
 
     // Inner dividing line
     doc.moveTo(M + 8, y + 36).lineTo(M + CW - 8, y + 36).lineWidth(0.5).strokeColor('#e5e7eb').stroke();
 
+    const cW4 = CW / 4;
+    const drawAttCell4 = (lbl, val, colIdx, rowY) => {
+      const x = M + colIdx * cW4;
+      doc.font('Helvetica').fontSize(8.5).fillColor('#6b7280').text(lbl, x + 8, rowY);
+      doc.font('Helvetica-Bold').fontSize(10).fillColor('#1e3a8a').text(String(val !== undefined && val !== null ? val : '0'), x + 8, rowY + 13);
+    };
+
     const openingLeaves = emp.balanceLeaves !== undefined ? emp.balanceLeaves : 0;
     const closingLeaves = emp.leaveBalance !== undefined ? emp.leaveBalance : (emp.balanceLeaves !== undefined ? Math.max(0, openingLeaves - (emp.paidLeave || 0)) : 0);
 
-    drawAttCell('Balance Leaves (Opening)', openingLeaves, 0, y + 40);
-    drawAttCell('Leave Balance (Closing)', closingLeaves, 1, y + 40);
+    drawAttCell4('Balance Leaves (Opening)', openingLeaves, 0, y + 40);
+    drawAttCell4('Leave Balance (Closing)', closingLeaves, 1, y + 40);
 
     // Comments / Remarks
-    const commX = M + 2 * cW;
+    const commX = M + 2 * cW4;
     doc.font('Helvetica').fontSize(8.5).fillColor('#6b7280').text('Comments / Remarks', commX + 8, y + 40);
-    doc.font('Helvetica-Oblique').fontSize(9).fillColor('#1e3a8a').text(emp.comments || 'nil', commX + 8, y + 53, { width: cW * 2 - 16 });
+    doc.font('Helvetica-Oblique').fontSize(9).fillColor('#1e3a8a').text(emp.comments || 'nil', commX + 8, y + 53, { width: cW4 * 2 - 16 });
 
     y += 85;
 
@@ -259,7 +281,7 @@ const generatePDF = (emp, month, year) => {
 
 // ─── Template renderer ────────────────────────────────────────────
 const renderTemplate = (template, emp, month, year) => {
-  const { basic, earned, ot, payout, gross, attendanceCuts, lwop, advance, totalDeductions, net } = calcPayroll(emp);
+  const { basic, paidDays, workingDays, earned, ot, payout, gross, attendanceCuts, lwop, advance, totalDeductions, net } = calcPayroll(emp);
   const slipMonth = month || emp.month || '';
   const slipYear  = year  || emp.year  || '';
   return template
@@ -287,7 +309,9 @@ const renderTemplate = (template, emp, month, year) => {
     .replace(/{{netPay}}/g,          fmt(net))
     .replace(/{{net}}/g,             fmt(net))
     .replace(/{{presentDays}}/g,     String(emp.presentDays !== undefined ? emp.presentDays : '0'))
-    .replace(/{{paidDays}}/g,        String(emp.paidDays !== undefined ? emp.paidDays : '0'))
+    .replace(/{{paidDays}}/g,        String(paidDays))
+    .replace(/{{workingDays}}/g,     String(workingDays))
+    .replace(/{{companyWorkingDays}}/g, String(workingDays))
     .replace(/{{paidLeave}}/g,       String(emp.paidLeave !== undefined ? emp.paidLeave : '0'))
     .replace(/{{balanceLeaves}}/g,   String(emp.balanceLeaves !== undefined ? emp.balanceLeaves : '0'))
     .replace(/{{leaveBalance}}/g,    String(emp.leaveBalance !== undefined ? emp.leaveBalance : '0'))

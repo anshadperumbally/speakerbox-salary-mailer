@@ -27,6 +27,7 @@ router.put('/', (req, res) => {
     companyName: req.body.companyName || current.companyName,
     companyAddress: req.body.companyAddress || current.companyAddress,
     companyEmail: req.body.companyEmail || current.companyEmail,
+    companyWorkingDays: parseFloat(req.body.companyWorkingDays) || current.companyWorkingDays || 24,
     smtp: {
       host: req.body.smtp?.host || current.smtp.host,
       port: parseInt(req.body.smtp?.port) || current.smtp.port,

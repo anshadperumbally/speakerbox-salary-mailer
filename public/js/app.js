@@ -64,8 +64,20 @@ async function fetchEmployees() {
 function calcNet(emp) {
   if (!emp) return 0;
   const basic = parseFloat(emp.basic || 0);
+  const paidDays = parseFloat(emp.paidDays !== undefined ? emp.paidDays : 0);
+  const workingDays = parseFloat(emp.workingDays || emp.companyWorkingDays || 24);
   const rawEarned = parseFloat(emp.earned || 0);
-  const earned = rawEarned > 0 ? rawEarned : basic;
+
+  // earned salary = Basic pay X paid days / company working days
+  let earned = 0;
+  if (basic > 0 && paidDays > 0 && workingDays > 0) {
+    earned = Math.round((basic * paidDays / workingDays) * 100) / 100;
+  } else if (rawEarned > 0) {
+    earned = rawEarned;
+  } else {
+    earned = basic;
+  }
+
   const ot = parseFloat(emp.ot || 0);
   const payout = parseFloat(emp.payout || emp.bonus || emp.stipend || emp.ta || 0);
   const gross = parseFloat(emp.gross || 0) || (earned + ot + payout);
@@ -118,7 +130,16 @@ function filterEmployees() {
 
   tbody.innerHTML = filtered.map(emp => {
     const basic = parseFloat(emp.basic || 0);
-    const earned = parseFloat(emp.earned || 0) || basic;
+    const paidDays = parseFloat(emp.paidDays !== undefined ? emp.paidDays : 0);
+    const workingDays = parseFloat(emp.workingDays || emp.companyWorkingDays || 24);
+    let earned = 0;
+    if (basic > 0 && paidDays > 0 && workingDays > 0) {
+      earned = Math.round((basic * paidDays / workingDays) * 100) / 100;
+    } else if (emp.earned !== undefined && parseFloat(emp.earned) > 0) {
+      earned = parseFloat(emp.earned);
+    } else {
+      earned = basic;
+    }
     const ot = parseFloat(emp.ot || 0);
     const payout = parseFloat(emp.payout || emp.bonus || 0);
     const gross = parseFloat(emp.gross || 0) || (earned + ot + payout);
@@ -204,7 +225,7 @@ function openEmployeeModal(id = null) {
   modal.style.display = 'flex';
   const fields = [
     'id','name','pos','location','email','via',
-    'present-days','paid-days','paid-leave','rh','bal-leaves','leave-bal','comments',
+    'working-days','present-days','paid-days','paid-leave','rh','bal-leaves','leave-bal','comments',
     'basic','earned','ot','payout','gross',
     'attendance-cuts','lwop','advance','total-deductions','net'
   ];
@@ -216,6 +237,8 @@ function openEmployeeModal(id = null) {
   document.getElementById('modal-title').textContent = 'Add Employee';
   const viaEl = document.getElementById('emp-via');
   if (viaEl) viaEl.value = 'Bank';
+  const wdEl = document.getElementById('emp-working-days');
+  if (wdEl) wdEl.value = '24';
 
   if (id) {
     const emp = allEmployees.find(e => e.id === id);
@@ -229,6 +252,7 @@ function openEmployeeModal(id = null) {
     document.getElementById('emp-email').value = emp.email || '';
     document.getElementById('emp-via').value = emp.via || 'Bank';
 
+    document.getElementById('emp-working-days').value = emp.workingDays !== undefined ? emp.workingDays : (emp.companyWorkingDays !== undefined ? emp.companyWorkingDays : '24');
     document.getElementById('emp-present-days').value = emp.presentDays !== undefined ? emp.presentDays : '';
     document.getElementById('emp-paid-days').value = emp.paidDays !== undefined ? emp.paidDays : '';
     document.getElementById('emp-paid-leave').value = emp.paidLeave !== undefined ? emp.paidLeave : '';
@@ -252,6 +276,35 @@ function openEmployeeModal(id = null) {
   }
 }
 
+function autoCalcModalFinancials() {
+  const basic = parseFloat(document.getElementById('emp-basic')?.value || 0);
+  const paidDays = parseFloat(document.getElementById('emp-paid-days')?.value || 0);
+  const workingDays = parseFloat(document.getElementById('emp-working-days')?.value || 24);
+
+  if (basic > 0 && paidDays > 0 && workingDays > 0) {
+    const earned = Math.round((basic * paidDays / workingDays) * 100) / 100;
+    const earnedInp = document.getElementById('emp-earned');
+    if (earnedInp) earnedInp.value = earned;
+  }
+
+  const earned = parseFloat(document.getElementById('emp-earned')?.value || basic || 0);
+  const ot = parseFloat(document.getElementById('emp-ot')?.value || 0);
+  const payout = parseFloat(document.getElementById('emp-payout')?.value || 0);
+  const gross = earned + ot + payout;
+  const grossInp = document.getElementById('emp-gross');
+  if (grossInp) grossInp.value = gross;
+
+  const attendanceCuts = parseFloat(document.getElementById('emp-attendance-cuts')?.value || 0);
+  const lwop = parseFloat(document.getElementById('emp-lwop')?.value || 0);
+  const advance = parseFloat(document.getElementById('emp-advance')?.value || 0);
+  const totalDeductions = attendanceCuts + lwop + advance;
+  const dedInp = document.getElementById('emp-total-deductions');
+  if (dedInp) dedInp.value = totalDeductions;
+
+  const netInp = document.getElementById('emp-net');
+  if (netInp) netInp.value = Math.max(0, gross - totalDeductions);
+}
+
 function closeEmployeeModal() {
   document.getElementById('employee-modal').style.display = 'none';
 }
@@ -262,9 +315,21 @@ async function saveEmployee() {
   const name = document.getElementById('emp-name').value.trim();
   if (!name) { toast('Employee Name is required', 'error'); return; }
 
+  const workingDays = parseFloat(document.getElementById('emp-working-days').value || 24);
   const basic = parseFloat(document.getElementById('emp-basic').value || 0);
+  const paidDays = parseFloat(document.getElementById('emp-paid-days').value || 0);
   const rawEarned = parseFloat(document.getElementById('emp-earned').value || 0);
-  const earned = rawEarned > 0 ? rawEarned : basic;
+  
+  // earned salary = Basic pay X paid days / company working days
+  let earned = 0;
+  if (basic > 0 && paidDays > 0 && workingDays > 0) {
+    earned = Math.round((basic * paidDays / workingDays) * 100) / 100;
+  } else if (rawEarned > 0) {
+    earned = rawEarned;
+  } else {
+    earned = basic;
+  }
+
   const ot = parseFloat(document.getElementById('emp-ot').value || 0);
   const payout = parseFloat(document.getElementById('emp-payout').value || 0);
 
@@ -295,8 +360,10 @@ async function saveEmployee() {
     via:               document.getElementById('emp-via').value.trim() || 'Bank',
     
     // Attendance
+    workingDays,
+    companyWorkingDays: workingDays,
     presentDays:       parseFloat(document.getElementById('emp-present-days').value || 0),
-    paidDays:          parseFloat(document.getElementById('emp-paid-days').value || 0),
+    paidDays,
     paidLeave,
     rh:                parseFloat(document.getElementById('emp-rh').value || 0),
     restrictedHoliday: parseFloat(document.getElementById('emp-rh').value || 0),
@@ -317,6 +384,8 @@ async function saveEmployee() {
     advance,
     totalDeductions,
     total:             totalDeductions,
+    net
+  };
     net
   };
 
@@ -652,22 +721,25 @@ async function loadLogs() {
 // ─── Settings ─────────────────────────────────────────────────────
 async function loadSettings() {
   const s = await api('/api/settings');
-  document.getElementById('company-name').value    = s.companyName || '';
-  document.getElementById('company-address').value = s.companyAddress || '';
-  document.getElementById('company-email').value   = s.companyEmail || '';
-  document.getElementById('smtp-host').value       = s.smtp?.host || '';
-  document.getElementById('smtp-port').value       = s.smtp?.port || '';
-  document.getElementById('smtp-user').value       = s.smtp?.user || '';
-  document.getElementById('smtp-pass').value       = ''; // never pre-fill password
-  document.getElementById('smtp-fromName').value   = s.smtp?.fromName || '';
-  document.getElementById('smtp-secure').checked   = s.smtp?.secure || false;
+  document.getElementById('company-name').value         = s.companyName || '';
+  document.getElementById('company-address').value      = s.companyAddress || '';
+  document.getElementById('company-email').value        = s.companyEmail || '';
+  const wdEl = document.getElementById('company-working-days');
+  if (wdEl) wdEl.value                                  = s.companyWorkingDays || 24;
+  document.getElementById('smtp-host').value            = s.smtp?.host || '';
+  document.getElementById('smtp-port').value            = s.smtp?.port || '';
+  document.getElementById('smtp-user').value            = s.smtp?.user || '';
+  document.getElementById('smtp-pass').value            = ''; // never pre-fill password
+  document.getElementById('smtp-fromName').value        = s.smtp?.fromName || '';
+  document.getElementById('smtp-secure').checked        = s.smtp?.secure || false;
 }
 
 async function saveSettings() {
   const body = {
-    companyName:    document.getElementById('company-name').value,
-    companyAddress: document.getElementById('company-address').value,
-    companyEmail:   document.getElementById('company-email').value,
+    companyName:        document.getElementById('company-name').value,
+    companyAddress:     document.getElementById('company-address').value,
+    companyEmail:       document.getElementById('company-email').value,
+    companyWorkingDays: parseFloat(document.getElementById('company-working-days')?.value) || 24,
     smtp: {
       host:     document.getElementById('smtp-host').value,
       port:     document.getElementById('smtp-port').value,
@@ -721,6 +793,15 @@ function togglePassVisibility() {
 // ─── Close modal on overlay click ──────────────────────────────────
 document.getElementById('employee-modal').addEventListener('click', (e) => {
   if (e.target === e.currentTarget) closeEmployeeModal();
+});
+
+// ─── Auto-calculation event listeners for employee modal ─────────
+[
+  'emp-basic', 'emp-paid-days', 'emp-working-days', 'emp-earned',
+  'emp-ot', 'emp-payout', 'emp-attendance-cuts', 'emp-lwop', 'emp-advance'
+].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', autoCalcModalFinancials);
 });
 
 // ─── Init ─────────────────────────────────────────────────────────

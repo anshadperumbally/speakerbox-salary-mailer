@@ -81,9 +81,24 @@ const csvRowToEmployee = (row, index, existingCount) => {
   const position = (getVal(row, 'Designation', 'DESIGNATION', 'Position', 'position', 'Role') || '').trim();
   const location = (getVal(row, 'Location', 'LOCATION', 'City', 'Branch') || '').trim();
 
+  let settings = {};
+  try { settings = JSON.parse(fs.readFileSync(path.join(dataDir, 'settings.json'), 'utf8')); } catch {}
+  const rawWorkingDays = parseNum(getVal(row, 'Company Working Days', 'Working Days', 'Workingdays', 'Total Working Days', 'No. Of Working Days', 'No of Working Days'));
+  const workingDays = rawWorkingDays > 0 ? rawWorkingDays : (parseFloat(settings.companyWorkingDays) || 24);
+
   const basic = parseAmount(getVal(row, 'Basic Pay', 'BASIC PAY', 'Basic', 'basic', 'Basic Salary'));
+  const paidDays = parseNum(getVal(row, 'Paid Days', 'PAID DAYS', 'Paid days', 'Workingdays', 'Working Days'));
   const rawEarned = parseAmount(getVal(row, 'Earned Salary', 'EARNED SALARY', 'Earned', 'earned', 'Earned Basic'));
-  const earned = rawEarned > 0 ? rawEarned : basic;
+
+  // earned salary = Basic pay X paid days / company working days
+  let earned = 0;
+  if (basic > 0 && paidDays > 0 && workingDays > 0) {
+    earned = Math.round((basic * paidDays / workingDays) * 100) / 100;
+  } else if (rawEarned > 0) {
+    earned = rawEarned;
+  } else {
+    earned = basic;
+  }
 
   const ot = parseAmount(getVal(row, 'OT', 'ot', 'Overtime', 'Over Time'));
   const payout = parseAmount(getVal(row, 'Pay Out', 'PAY OUT', 'Payout', 'payout', 'Bonus', 'bonus', 'Allowance'));
@@ -109,7 +124,6 @@ const csvRowToEmployee = (row, index, existingCount) => {
   const rh = parseNum(getVal(row, 'RH', 'rh', 'Restricted Holiday', 'Restricted Holidays', 'worked on Resticted holiday', 'worked on Restricted holiday'));
   const presentDays = parseNum(getVal(row, 'Present Days', 'PRESENT DAYS', 'Present', 'present'));
   const paidLeave = parseNum(getVal(row, 'Paid Leave', 'PAID LEAVE', 'Paid Leaves'));
-  const paidDays = parseNum(getVal(row, 'Paid Days', 'PAID DAYS', 'Paid days', 'Workingdays', 'Working Days'));
 
   const rawClosing = parseNum(getVal(row, 'Leave Balance', 'Closing Leave Balance', 'Remaining Leaves'));
   const leaveBalance = (rawClosing !== undefined && rawClosing !== 0) 
@@ -128,6 +142,8 @@ const csvRowToEmployee = (row, index, existingCount) => {
     department:        (getVal(row, 'Department', 'department', 'Dept') || '').trim(),
     
     // Attendance
+    workingDays,
+    companyWorkingDays: workingDays,
     balanceLeaves,
     rh,
     restrictedHoliday: rh,
@@ -174,9 +190,22 @@ router.get('/', (req, res) => {
 // POST add employee
 router.post('/', (req, res) => {
   const employees = readEmployees();
+  let settings = {};
+  try { settings = JSON.parse(fs.readFileSync(path.join(dataDir, 'settings.json'), 'utf8')); } catch {}
+  const workingDays = parseFloat(req.body.workingDays || req.body.companyWorkingDays || settings.companyWorkingDays || 24);
   const basic = parseAmount(req.body.basic);
+  const paidDays = parseFloat(req.body.paidDays) || 0;
   const rawEarned = parseAmount(req.body.earned);
-  const earned = rawEarned > 0 ? rawEarned : basic;
+
+  // earned salary = Basic pay X paid days / company working days
+  let earned = 0;
+  if (basic > 0 && paidDays > 0 && workingDays > 0) {
+    earned = Math.round((basic * paidDays / workingDays) * 100) / 100;
+  } else if (rawEarned > 0) {
+    earned = rawEarned;
+  } else {
+    earned = basic;
+  }
 
   const ot = parseAmount(req.body.ot);
   const payout = parseAmount(req.body.payout || req.body.bonus);
@@ -205,8 +234,10 @@ router.post('/', (req, res) => {
     month:             req.body.month       || '',
     year:              req.body.year        || '',
     // Attendance
+    workingDays,
+    companyWorkingDays: workingDays,
     presentDays:       parseFloat(req.body.presentDays) || 0,
-    paidDays:          parseFloat(req.body.paidDays)    || 0,
+    paidDays,
     paidLeave,
     rh:                parseFloat(req.body.rh || req.body.restrictedHoliday) || 0,
     restrictedHoliday: parseFloat(req.body.restrictedHoliday || req.body.rh) || 0,
@@ -311,8 +342,8 @@ router.post('/import-text', (req, res) => {
 
 // GET sample CSV template
 router.get('/sample-csv', (req, res) => {
-  const headers = 'Employee No,Name,DESIGNATION,LOCATION,BALANCE LEAVES,BASIC PAY,RH,PRESENT DAYS,PAID LEAVE,PAID DAYS,EARNED SALARY,OT,PAY OUT,GROSS SALARY,ATTENDANCE CUTS,LWOP,ADVANCE SALARY,TOTAL,NET SALARY,Leave Balance,comments,Email';
-  const sample  = '54,Anshad P,Accountant,Calicut,2,19000,1,22,1,24,19000,500,0,19500,200,300,1000,1500,18000,1,Nil,anshadperumbally@gmail.com';
+  const headers = 'Employee No,Name,DESIGNATION,LOCATION,BALANCE LEAVES,BASIC PAY,RH,PRESENT DAYS,PAID LEAVE,PAID DAYS,Company Working Days,EARNED SALARY,OT,PAY OUT,GROSS SALARY,ATTENDANCE CUTS,LWOP,ADVANCE SALARY,TOTAL,NET SALARY,Leave Balance,comments,Email';
+  const sample  = '54,Anshad P,Accountant,Calicut,2,19000,1,22,1,24,24,19000,500,0,19500,200,300,1000,1500,18000,1,Nil,anshadperumbally@gmail.com';
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader('Content-Disposition', 'attachment; filename="speakerbox_salary_template.csv"');
   res.send(`${headers}\n${sample}`);

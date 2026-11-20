@@ -300,6 +300,10 @@ https://hello.speakerbox.agency/anshad</textarea>
             <label class="form-label">Company Email</label>
             <input type="email" class="form-control" id="company-email"/>
           </div>
+          <div class="form-group">
+            <label class="form-label">Default Company Working Days</label>
+            <input type="number" class="form-control" id="company-working-days" placeholder="24"/>
+          </div>
         </div>
 
         <div class="card">
@@ -391,20 +395,20 @@ https://hello.speakerbox.agency/anshad</textarea>
 
         <div class="form-section-title">Attendance Details</div>
         <div class="form-row">
+          <div class="form-group"><label class="form-label">Company Working Days</label><input type="number" step="0.5" class="form-control" id="emp-working-days" placeholder="24"/></div>
           <div class="form-group"><label class="form-label">Present Days</label><input type="number" step="0.5" class="form-control" id="emp-present-days" placeholder="22"/></div>
+        </div>
+        <div class="form-row">
           <div class="form-group"><label class="form-label">Paid Days</label><input type="number" step="0.5" class="form-control" id="emp-paid-days" placeholder="24"/></div>
-        </div>
-        <div class="form-row">
           <div class="form-group"><label class="form-label">Paid Leave</label><input type="number" step="0.5" class="form-control" id="emp-paid-leave" placeholder="1"/></div>
-          <div class="form-group"><label class="form-label">Restricted Holiday (RH)</label><input type="number" step="0.5" class="form-control" id="emp-rh" placeholder="1"/></div>
         </div>
         <div class="form-row">
+          <div class="form-group"><label class="form-label">Restricted Holiday (RH)</label><input type="number" step="0.5" class="form-control" id="emp-rh" placeholder="1"/></div>
           <div class="form-group"><label class="form-label">Balance Leaves (Opening)</label><input type="number" step="0.5" class="form-control" id="emp-bal-leaves" placeholder="2"/></div>
-          <div class="form-group"><label class="form-label">Leave Balance (Closing)</label><input type="number" step="0.5" class="form-control" id="emp-leave-bal" placeholder="1"/></div>
         </div>
-        <div class="form-group">
-          <label class="form-label">Comments / Remarks</label>
-          <input type="text" class="form-control" id="emp-comments" placeholder="nil"/>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Leave Balance (Closing)</label><input type="number" step="0.5" class="form-control" id="emp-leave-bal" placeholder="1"/></div>
+          <div class="form-group"><label class="form-label">Comments / Remarks</label><input type="text" class="form-control" id="emp-comments" placeholder="nil"/></div>
         </div>
 
         <div class="form-section-title">Earnings (Rs.)</div>
