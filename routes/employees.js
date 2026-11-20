@@ -352,8 +352,8 @@ router.post('/import-text', (req, res) => {
 
 // GET sample CSV template
 router.get('/sample-csv', (req, res) => {
-  const headers = 'Employee No,Name,DESIGNATION,LOCATION,Month,Company Working Days,BALANCE LEAVES,BASIC PAY,RH,PRESENT DAYS,PAID LEAVE,PAID DAYS,EARNED SALARY,OT,PAY OUT,GROSS SALARY,ATTENDANCE CUTS,LWOP,ADVANCE SALARY,TOTAL,NET SALARY,Leave Balance,comments,Email';
-  const sample  = '54,Anshad P,Accountant,Calicut,October 2026,24,2,19000,1,22,1,24,19000,500,0,19500,200,300,1000,1500,18000,1,Nil,anshadperumbally@gmail.com';
+  const headers = 'Employee No,Name,DESIGNATION,LOCATION,BALANCE LEAVES,BASIC PAY,RH,PRESENT DAYS,PAID LEAVE,PAID DAYS,EARNED SALARY,OT,PAY OUT,GROSS SALARY,ATTENDANCE CUTS,LWOP,ADVANCE SALARY,TOTAL,NET SALARY,Leave Balance,comments,Email,Month,Company Working Days';
+  const sample  = '54,Anshad P,Accountant,Calicut,2,19000,1,22,1,24,19000,500,0,19500,200,300,1000,1500,18000,1,Nil,anshadperumbally@gmail.com,October 2026,24';
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader('Content-Disposition', 'attachment; filename="speakerbox_salary_template.csv"');
   res.send(`${headers}\n${sample}`);
