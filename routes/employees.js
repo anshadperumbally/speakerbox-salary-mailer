@@ -93,17 +93,15 @@ const csvRowToEmployee = (row, index, existingCount) => {
   const rawGross = parseAmount(getVal(row, 'Gross Salary', 'GROSS SALARY', 'Gross Pay', 'Gross', 'gross'));
   const gross = rawGross > 0 ? rawGross : calculatedGross;
 
-  // Deductions: Attendance Cuts + LWOP + Advance Salary
+  // Deductions strictly include Attendance Cuts + LWOP + Advance Salary
   const attendanceCuts = parseAmount(getVal(row, 'Attendance Cuts', 'ATTENDANCE CUTS', 'Attendance Cut', 'attendance cuts', 'Attendance'));
   const lwop = parseAmount(getVal(row, 'LWOP', 'lwop', 'Leave Without Pay', 'Leave Cut', 'Leave Cuts', 'leave cut'));
   const advance = parseAmount(getVal(row, 'Advance Salary', 'ADVANCE SALARY', 'Advance', 'advance', 'Advance Pay'));
-  const calculatedDeductions = attendanceCuts + lwop + advance;
-  const rawTotal = parseAmount(getVal(row, 'Total', 'TOTAL', 'Total Deduction', 'Total Deductions', 'Deduction', 'deductions'));
-  const totalDeductions = rawTotal > 0 ? rawTotal : calculatedDeductions;
+  const totalDeductions = attendanceCuts + lwop + advance;
 
-  // Net Salary = Gross Salary - Total Deductions
+  // Net Salary = Gross Salary - Total Deductions (or provided Net Salary / TOTAL)
   const calculatedNet = Math.max(0, gross - totalDeductions);
-  const rawNet = parseAmount(getVal(row, 'Net Salary', 'NET SALARY', 'Net Pay', 'Net', 'net', 'Net Amount'));
+  const rawNet = parseAmount(getVal(row, 'Net Salary', 'NET SALARY', 'Net Pay', 'Net', 'net', 'Net Amount', 'TOTAL', 'Total'));
   const net = rawNet > 0 ? rawNet : calculatedNet;
 
   // Attendance fields
@@ -187,7 +185,7 @@ router.post('/', (req, res) => {
   const attendanceCuts = parseAmount(req.body.attendanceCuts);
   const lwop = parseAmount(req.body.lwop || req.body.leaveCut);
   const advance = parseAmount(req.body.advance);
-  const totalDeductions = parseAmount(req.body.totalDeductions || req.body.total) || (attendanceCuts + lwop + advance);
+  const totalDeductions = attendanceCuts + lwop + advance;
 
   const net = parseAmount(req.body.net) || Math.max(0, gross - totalDeductions);
 

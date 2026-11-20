@@ -73,7 +73,7 @@ function calcNet(emp) {
   const attendanceCuts = parseFloat(emp.attendanceCuts || 0);
   const lwop = parseFloat(emp.lwop || emp.leaveCut || 0);
   const advance = parseFloat(emp.advance || 0);
-  const totalDeductions = parseFloat(emp.totalDeductions || emp.total || emp.deduction || 0) || (attendanceCuts + lwop + advance);
+  const totalDeductions = attendanceCuts + lwop + advance;
 
   const rawNet = parseFloat(emp.net || 0);
   return rawNet > 0 ? rawNet : Math.max(0, gross - totalDeductions);
@@ -122,7 +122,7 @@ function filterEmployees() {
     const ot = parseFloat(emp.ot || 0);
     const payout = parseFloat(emp.payout || emp.bonus || 0);
     const gross = parseFloat(emp.gross || 0) || (earned + ot + payout);
-    const deductions = parseFloat(emp.totalDeductions || emp.total || 0) || (parseFloat(emp.attendanceCuts || 0) + parseFloat(emp.lwop || emp.leaveCut || 0) + parseFloat(emp.advance || 0));
+    const deductions = parseFloat(emp.attendanceCuts || 0) + parseFloat(emp.lwop || emp.leaveCut || 0) + parseFloat(emp.advance || 0);
     const net = parseFloat(emp.net || 0) || Math.max(0, gross - deductions);
 
     const emailDisplay = emp.email 
@@ -246,7 +246,8 @@ function openEmployeeModal(id = null) {
     document.getElementById('emp-attendance-cuts').value = emp.attendanceCuts !== undefined ? emp.attendanceCuts : '';
     document.getElementById('emp-lwop').value = emp.lwop !== undefined ? emp.lwop : (emp.leaveCut !== undefined ? emp.leaveCut : '');
     document.getElementById('emp-advance').value = emp.advance !== undefined ? emp.advance : '';
-    document.getElementById('emp-total-deductions').value = emp.totalDeductions !== undefined ? emp.totalDeductions : (emp.total !== undefined ? emp.total : '');
+    const deductions = parseFloat(emp.attendanceCuts || 0) + parseFloat(emp.lwop || emp.leaveCut || 0) + parseFloat(emp.advance || 0);
+    document.getElementById('emp-total-deductions').value = deductions;
     document.getElementById('emp-net').value = emp.net !== undefined ? emp.net : '';
   }
 }
@@ -273,8 +274,7 @@ async function saveEmployee() {
   const attendanceCuts = parseFloat(document.getElementById('emp-attendance-cuts').value || 0);
   const lwop = parseFloat(document.getElementById('emp-lwop').value || 0);
   const advance = parseFloat(document.getElementById('emp-advance').value || 0);
-  const rawDeductions = parseFloat(document.getElementById('emp-total-deductions').value || 0);
-  const totalDeductions = rawDeductions > 0 ? rawDeductions : (attendanceCuts + lwop + advance);
+  const totalDeductions = attendanceCuts + lwop + advance;
 
   const rawNet = parseFloat(document.getElementById('emp-net').value || 0);
   const net = rawNet > 0 ? rawNet : Math.max(0, gross - totalDeductions);

@@ -32,13 +32,11 @@ const calcPayroll = (emp) => {
   const calculatedGross = earned + ot + payout;
   const gross = rawGross > 0 ? rawGross : calculatedGross;
 
-  // Deductions: Attendance Cuts + LWOP + Advance Salary
+  // Deductions strictly include Attendance Cuts + LWOP + Advance Salary
   const attendanceCuts = parseFloat(emp.attendanceCuts || 0);
   const lwop = parseFloat(emp.lwop || emp.leaveCut || 0);
   const advance = parseFloat(emp.advance || 0);
-  const calculatedDeductions = attendanceCuts + lwop + advance;
-  const rawTotal = parseFloat(emp.totalDeductions || emp.total || emp.deduction || 0);
-  const totalDeductions = rawTotal > 0 ? rawTotal : calculatedDeductions;
+  const totalDeductions = attendanceCuts + lwop + advance;
 
   // Net Salary = Gross Salary - Total Deductions
   const rawNet = parseFloat(emp.net || 0);
