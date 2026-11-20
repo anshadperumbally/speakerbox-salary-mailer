@@ -386,8 +386,6 @@ async function saveEmployee() {
     total:             totalDeductions,
     net
   };
-    net
-  };
 
   if (editId) {
     const idx = allEmployees.findIndex(e => e.id === editId);
